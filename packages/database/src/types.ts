@@ -1,0 +1,163 @@
+/**
+ * Hand-written to match packages/database/supabase/migrations/0001_init.sql
+ * exactly. If you later install the Supabase CLI, you can regenerate this
+ * file automatically with:
+ *   supabase gen types typescript --project-id <your-project-ref> > src/types.ts
+ * until then, keep this file in sync by hand whenever the SQL schema changes.
+ */
+
+export type MatchMode = "ranked_1v1" | "practice_classic" | "practice_zen" | "daily_challenge";
+export type MatchStatus = "in_progress" | "completed" | "abandoned";
+export type FriendshipStatus = "pending" | "accepted";
+
+export interface Profile {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  rating: number;
+  peak_rating: number;
+  xp: number;
+  level: number;
+  coins: number;
+  matches_played: number;
+  matches_won: number;
+  caret_color: string;
+  active_theme: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Match {
+  id: string;
+  mode: MatchMode;
+  status: MatchStatus;
+  text_content: string;
+  player_one_id: string | null;
+  player_two_id: string | null;
+  player_one_wpm: number | null;
+  player_one_accuracy: number | null;
+  player_two_wpm: number | null;
+  player_two_accuracy: number | null;
+  winner_id: string | null;
+  player_one_rating_delta: number | null;
+  player_two_rating_delta: number | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface MatchEvent {
+  id: number;
+  match_id: string;
+  player_id: string;
+  correct_chars: number;
+  total_chars: number;
+  elapsed_ms: number;
+  server_received_at: string;
+}
+
+export interface DailyChallenge {
+  challenge_date: string;
+  text_content: string;
+  rule_description: string;
+  created_at: string;
+}
+
+export interface DailyChallengeAttempt {
+  id: string;
+  challenge_date: string;
+  player_id: string;
+  wpm: number;
+  accuracy: number;
+  xp_awarded: number;
+  coins_awarded: number;
+  created_at: string;
+}
+
+export interface LeaderboardSnapshot {
+  id: string;
+  period_start: string;
+  period_end: string;
+  player_id: string;
+  rating_at_snapshot: number;
+  rank_position: number;
+  created_at: string;
+}
+
+export interface Cosmetic {
+  id: string;
+  name: string;
+  kind: "caret_color" | "theme";
+  price_coins: number;
+  preview_value: string;
+}
+
+export interface UserCosmetic {
+  player_id: string;
+  cosmetic_id: string;
+  unlocked_at: string;
+}
+
+export interface Friendship {
+  requester_id: string;
+  addressee_id: string;
+  status: FriendshipStatus;
+  created_at: string;
+}
+
+/**
+ * Supabase's `createClient<Database>()` generic uses this shape to type
+ * every `.from("table_name")` call. Row = what select returns, Insert = what
+ * you must/can provide on insert, Update = what you can patch.
+ */
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: Profile;
+        Insert: Partial<Profile> & Pick<Profile, "id" | "username">;
+        Update: Partial<Profile>;
+      };
+      matches: {
+        Row: Match;
+        Insert: Partial<Match> & Pick<Match, "mode" | "text_content">;
+        Update: Partial<Match>;
+      };
+      match_events: {
+        Row: MatchEvent;
+        Insert: Omit<MatchEvent, "id" | "server_received_at">;
+        Update: Partial<MatchEvent>;
+      };
+      daily_challenges: {
+        Row: DailyChallenge;
+        Insert: DailyChallenge;
+        Update: Partial<DailyChallenge>;
+      };
+      daily_challenge_attempts: {
+        Row: DailyChallengeAttempt;
+        Insert: Omit<DailyChallengeAttempt, "id" | "created_at">;
+        Update: Partial<DailyChallengeAttempt>;
+      };
+      leaderboard_snapshots: {
+        Row: LeaderboardSnapshot;
+        Insert: Omit<LeaderboardSnapshot, "id" | "created_at">;
+        Update: Partial<LeaderboardSnapshot>;
+      };
+      cosmetics: {
+        Row: Cosmetic;
+        Insert: Cosmetic;
+        Update: Partial<Cosmetic>;
+      };
+      user_cosmetics: {
+        Row: UserCosmetic;
+        Insert: Omit<UserCosmetic, "unlocked_at">;
+        Update: Partial<UserCosmetic>;
+      };
+      friendships: {
+        Row: Friendship;
+        Insert: Pick<Friendship, "requester_id" | "addressee_id">;
+        Update: Partial<Friendship>;
+      };
+    };
+  };
+}

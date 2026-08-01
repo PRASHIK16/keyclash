@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Keyclash design tokens.
+  Dark-mode-first: competitive typing/esports products live in dark UI
+  (Chess.com's live-game view, most ranked gaming platforms) because the
+  typing area needs to be the highest-contrast thing on screen, not competing
+  with a bright chrome. Warm near-black (not pure black) so it doesn't feel
+  like a terminal. Two-color brand system: violet for identity/structure,
+  a sharp electric lime for "action" — CTAs, active rating changes, wins —
+  deliberately avoiding the generic blue-on-white SaaS look and Monkeytype's
+  own muted-yellow-on-black identity.
+*/
+:root {
+  --kc-bg: #0e0e13;
+  --kc-surface: #17171f;
+  --kc-surface-2: #1f1f2a;
+  --kc-surface-3: #292935;
+  --kc-border: #2a2a37;
+  --kc-ink: #f2f2f5;
+  --kc-ink-muted: #8b8b9c;
+  --kc-accent: #c6ff3d;
+  --kc-violet: #7c3aed;
+  --kc-danger: #f43f5e;
+}
+
+html,
+body {
+  background-color: var(--kc-bg);
+  color: var(--kc-ink);
+}
+
+* {
+  border-color: var(--kc-border);
+}
+
+::selection {
+  background-color: var(--kc-accent);
+  color: black;
+}
