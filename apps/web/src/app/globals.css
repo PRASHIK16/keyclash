@@ -40,3 +40,60 @@ body {
   background-color: var(--kc-accent);
   color: black;
 }
+
+/* Ambient scanline/grid backdrop — used once, on the hero, per the "spend
+   your boldness in one place" principle. Not repeated on every page. */
+.kc-grid-bg {
+  background-image:
+    linear-gradient(rgba(124, 58, 237, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.14) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse 60% 60% at 50% 30%, black 40%, transparent 90%);
+}
+
+.kc-gradient-text {
+  background: linear-gradient(100deg, var(--kc-ink) 20%, var(--kc-accent) 55%, var(--kc-violet) 85%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@keyframes kc-clash-shard-left {
+  0% { transform: translate(0, 0) rotate(-18deg) scale(1); opacity: 1; }
+  100% { transform: translate(-14px, -6px) rotate(-32deg) scale(0.94); opacity: 1; }
+}
+@keyframes kc-clash-shard-right {
+  0% { transform: translate(0, 0) rotate(18deg) scale(1); opacity: 1; }
+  100% { transform: translate(14px, -6px) rotate(32deg) scale(0.94); opacity: 1; }
+}
+@keyframes kc-clash-flash {
+  0% { opacity: 0; transform: scale(0.4); }
+  30% { opacity: 0.9; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes kc-caret-blink {
+  0%, 45% { opacity: 1; }
+  50%, 95% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes kc-float-up {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes kc-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0px 0px rgba(198, 255, 61, 0); }
+  50% { box-shadow: 0 0 28px 4px rgba(198, 255, 61, 0.25); }
+}
+
+.kc-clash-left { animation: kc-clash-shard-left 700ms ease-out forwards; }
+.kc-clash-right { animation: kc-clash-shard-right 700ms ease-out forwards; }
+.kc-clash-flash { animation: kc-clash-flash 700ms ease-out forwards; }
+.kc-caret { animation: kc-caret-blink 1.1s step-end infinite; }
+.kc-float-up { animation: kc-float-up 500ms ease-out both; }
+.kc-pulse-glow { animation: kc-pulse-glow 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kc-clash-left, .kc-clash-right, .kc-clash-flash, .kc-caret, .kc-float-up, .kc-pulse-glow {
+    animation: none !important;
+  }
+}
