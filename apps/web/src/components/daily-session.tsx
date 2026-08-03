@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { TypingRace, type TypingRaceResult } from "@/components/typing-race";
+import { ClashBurst } from "@/components/clash-burst";
+import { AnimatedNumber } from "@/components/animated-number";
 import { Card, CardContent } from "@keyclash/ui";
 
 export function DailySession({
@@ -35,14 +37,21 @@ export function DailySession({
 
   if (result) {
     return (
-      <Card className="mx-auto max-w-md text-center">
-        <CardContent className="space-y-4 py-8">
-          <p className="font-display text-4xl font-extrabold text-kc-accent">
-            {Math.round(result.wpm)} <span className="text-lg text-kc-ink-muted">wpm</span>
+      <Card className="kc-float-up mx-auto max-w-md overflow-hidden text-center">
+        <CardContent className="space-y-3 py-10">
+          <ClashBurst />
+          <p className="font-display text-5xl font-extrabold text-kc-violet">
+            <AnimatedNumber value={Math.round(result.wpm)} />
+            <span className="ml-2 text-lg font-medium text-kc-ink-muted">wpm</span>
           </p>
-          <p className="text-kc-ink-muted">{result.accuracy}% accuracy</p>
+          <p className="text-kc-ink-muted">
+            <AnimatedNumber value={result.accuracy} decimals={1} />% accuracy
+          </p>
           {rewards && (
-            <p className="text-sm text-kc-ink">
+            <p
+              className="kc-float-up text-sm font-semibold text-kc-ink"
+              style={{ animationDelay: "300ms" }}
+            >
               +{rewards.xpAwarded} XP · +{rewards.coinsAwarded} coins
             </p>
           )}
