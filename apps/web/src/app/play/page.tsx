@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Navbar } from "@/components/navbar";
-import { Swords, Trophy, Zap } from "lucide-react";
+import { Swords, Trophy, Zap, Users } from "lucide-react";
 
 export default function PlayHubPage() {
   return (
@@ -31,7 +31,13 @@ export default function PlayHubPage() {
             title="Ranked 1v1"
             description="Live matchmaking. Real-time races. Rating on the line."
             accent="danger"
-            fullWidth
+          />
+          <ModeCard
+            href="/play/room"
+            icon={<Users className="text-cyan-400" size={22} />}
+            title="Play with friends"
+            description="Create a room, share the code, pick your own mode and timer."
+            accent="cyan"
           />
         </div>
       </main>
@@ -51,13 +57,14 @@ function ModeCard({
   icon: React.ReactNode;
   title: string;
   description: string;
-  accent: "accent" | "violet" | "danger";
+  accent: "accent" | "violet" | "danger" | "cyan";
   fullWidth?: boolean;
 }) {
   const glowMap: Record<typeof accent, string> = {
     accent: "hover:shadow-[0_0_0_1px_var(--kc-accent),0_0_24px_-4px_var(--kc-accent)]",
     violet: "hover:shadow-[0_0_0_1px_var(--kc-violet),0_0_24px_-4px_var(--kc-violet)]",
     danger: "hover:shadow-[0_0_0_1px_var(--kc-danger),0_0_24px_-4px_var(--kc-danger)]",
+    cyan: "hover:shadow-[0_0_0_1px_#22D3EE,0_0_24px_-4px_#22D3EE]",
   };
   const glow = glowMap[accent];
   return (
