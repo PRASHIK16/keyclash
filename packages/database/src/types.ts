@@ -154,56 +154,67 @@ export interface Database {
         Row: Profile;
         Insert: Partial<Profile> & Pick<Profile, "id" | "username">;
         Update: Partial<Profile>;
+        Relationships: [];
       };
       matches: {
         Row: Match;
         Insert: Partial<Match> & Pick<Match, "mode" | "text_content">;
         Update: Partial<Match>;
+        Relationships: [];
       };
       match_events: {
         Row: MatchEvent;
         Insert: Omit<MatchEvent, "id" | "server_received_at">;
         Update: Partial<MatchEvent>;
+        Relationships: [];
       };
       daily_challenges: {
         Row: DailyChallenge;
         Insert: DailyChallenge;
         Update: Partial<DailyChallenge>;
+        Relationships: [];
       };
       daily_challenge_attempts: {
         Row: DailyChallengeAttempt;
         Insert: Omit<DailyChallengeAttempt, "id" | "created_at">;
         Update: Partial<DailyChallengeAttempt>;
+        Relationships: [];
       };
       leaderboard_snapshots: {
         Row: LeaderboardSnapshot;
         Insert: Omit<LeaderboardSnapshot, "id" | "created_at">;
         Update: Partial<LeaderboardSnapshot>;
+        Relationships: [];
       };
       cosmetics: {
         Row: Cosmetic;
         Insert: Cosmetic;
         Update: Partial<Cosmetic>;
+        Relationships: [];
       };
       user_cosmetics: {
         Row: UserCosmetic;
         Insert: Omit<UserCosmetic, "unlocked_at">;
         Update: Partial<UserCosmetic>;
+        Relationships: [];
       };
       friendships: {
         Row: Friendship;
         Insert: Pick<Friendship, "requester_id" | "addressee_id">;
         Update: Partial<Friendship>;
+        Relationships: [];
       };
       rooms: {
         Row: Room;
         Insert: Partial<Room> & Pick<Room, "code" | "host_id">;
         Update: Partial<Room>;
+        Relationships: [];
       };
       room_participants: {
         Row: RoomParticipant;
         Insert: Omit<RoomParticipant, "joined_at">;
         Update: Partial<RoomParticipant>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
