@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Navbar } from "@/components/navbar";
-import { Swords, Trophy, Lock, Zap } from "lucide-react";
+import { Swords, Trophy, Zap } from "lucide-react";
 
 export default function PlayHubPage() {
   return (
@@ -25,18 +25,14 @@ export default function PlayHubPage() {
             description="One shot, same text as everyone today. Bonus XP and coins."
             accent="violet"
           />
-          <div className="relative rounded-xl border border-kc-border bg-kc-surface p-6 opacity-60 sm:col-span-2">
-            <div className="absolute right-5 top-5 flex items-center gap-1.5 rounded-full bg-kc-surface-2 px-2.5 py-1 text-xs font-medium text-kc-ink-muted">
-              <Lock size={12} />
-              Next milestone
-            </div>
-            <Swords className="text-kc-danger" size={22} />
-            <p className="mt-3 font-display text-lg font-bold text-kc-ink">Ranked 1v1</p>
-            <p className="mt-1 text-sm text-kc-ink-muted">
-              Live matchmaking, real-time races, rating on the line. Coming next — the rating engine
-              and anti-cheat validation are already built and waiting.
-            </p>
-          </div>
+          <ModeCard
+            href="/play/ranked"
+            icon={<Swords className="text-kc-danger" size={22} />}
+            title="Ranked 1v1"
+            description="Live matchmaking. Real-time races. Rating on the line."
+            accent="danger"
+            fullWidth
+          />
         </div>
       </main>
     </div>
@@ -49,21 +45,25 @@ function ModeCard({
   title,
   description,
   accent,
+  fullWidth = false,
 }: {
   href: string;
   icon: React.ReactNode;
   title: string;
   description: string;
-  accent: "accent" | "violet";
+  accent: "accent" | "violet" | "danger";
+  fullWidth?: boolean;
 }) {
-  const glow =
-    accent === "accent"
-      ? "hover:shadow-[0_0_0_1px_var(--kc-accent),0_0_24px_-4px_var(--kc-accent)]"
-      : "hover:shadow-[0_0_0_1px_var(--kc-violet),0_0_24px_-4px_var(--kc-violet)]";
+  const glowMap: Record<typeof accent, string> = {
+    accent: "hover:shadow-[0_0_0_1px_var(--kc-accent),0_0_24px_-4px_var(--kc-accent)]",
+    violet: "hover:shadow-[0_0_0_1px_var(--kc-violet),0_0_24px_-4px_var(--kc-violet)]",
+    danger: "hover:shadow-[0_0_0_1px_var(--kc-danger),0_0_24px_-4px_var(--kc-danger)]",
+  };
+  const glow = glowMap[accent];
   return (
     <Link
       href={href}
-      className={`group rounded-xl border border-kc-border bg-kc-surface p-6 transition-all duration-200 hover:-translate-y-0.5 ${glow}`}
+      className={`group rounded-xl border border-kc-border bg-kc-surface p-6 transition-all duration-200 hover:-translate-y-0.5 ${glow} ${fullWidth ? "sm:col-span-2" : ""}`}
     >
       {icon}
       <p className="mt-3 font-display text-lg font-bold text-kc-ink">{title}</p>
