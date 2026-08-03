@@ -39,6 +39,9 @@ export async function Navbar() {
           <Link href="/leaderboard" className="transition-colors hover:text-kc-ink">
             Leaderboard
           </Link>
+          <Link href="/settings" className="transition-colors hover:text-kc-ink">
+            Settings
+          </Link>
         </nav>
 
         <Link href={`/profile/${profile.username}`} className="flex items-center gap-4">
