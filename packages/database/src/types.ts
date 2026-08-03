@@ -28,17 +28,33 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface PlayerRaceStats {
+  rawWpm: number;
+  consistency: number;
+  correctWords: number;
+  incorrectWords: number;
+  totalKeystrokes: number;
+  correctKeystrokes: number;
+  mistakes: number;
+  completionPct: number;
+}
+
 export interface Match {
   id: string;
   mode: MatchMode;
   status: MatchStatus;
   text_content: string;
+  mode_kind: string;
+  duration_seconds: number | null;
+  word_target: number | null;
   player_one_id: string | null;
   player_two_id: string | null;
   player_one_wpm: number | null;
   player_one_accuracy: number | null;
+  player_one_stats: PlayerRaceStats | null;
   player_two_wpm: number | null;
   player_two_accuracy: number | null;
+  player_two_stats: PlayerRaceStats | null;
   winner_id: string | null;
   player_one_rating_delta: number | null;
   player_two_rating_delta: number | null;
