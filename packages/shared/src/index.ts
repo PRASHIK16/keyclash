@@ -1,4 +1,5 @@
 export * from "./word-banks";
+export * from "./settings";
 
 export const APP_NAME = "Keyclash";
 
