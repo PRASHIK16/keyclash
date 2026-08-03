@@ -42,9 +42,13 @@ export async function POST(request: Request) {
       status: "completed",
       playerOneWpm: match.player_one_wpm,
       playerTwoWpm: match.player_two_wpm,
+      playerOneAccuracy: match.player_one_accuracy,
+      playerTwoAccuracy: match.player_two_accuracy,
       winnerId: match.winner_id,
       playerOneRatingDelta: match.player_one_rating_delta,
       playerTwoRatingDelta: match.player_two_rating_delta,
+      playerOneStats: match.player_one_stats,
+      playerTwoStats: match.player_two_stats,
     });
   }
 
@@ -157,7 +161,7 @@ export async function POST(request: Request) {
       .eq("id", match.player_two_id),
   ]);
 
-  await service
+  const { data: updatedMatch } = await service
     .from("matches")
     .update({
       status: "completed",
@@ -170,14 +174,20 @@ export async function POST(request: Request) {
       player_two_rating_delta: elo.playerTwoDelta,
       completed_at: new Date().toISOString(),
     })
-    .eq("id", body.matchId);
+    .eq("id", body.matchId)
+    .select("player_one_stats, player_two_stats")
+    .single();
 
   return NextResponse.json({
     status: "completed",
     playerOneWpm: p1Wpm,
     playerTwoWpm: p2Wpm,
+    playerOneAccuracy: p1Result.accuracy,
+    playerTwoAccuracy: p2Result.accuracy,
     winnerId,
     playerOneRatingDelta: elo.playerOneDelta,
     playerTwoRatingDelta: elo.playerTwoDelta,
+    playerOneStats: updatedMatch?.player_one_stats ?? null,
+    playerTwoStats: updatedMatch?.player_two_stats ?? null,
   });
 }

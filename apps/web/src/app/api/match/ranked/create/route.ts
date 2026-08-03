@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
-import { PRACTICE_TEXTS } from "@keyclash/shared";
+import { generateWordStream, wordBufferSizeForDuration } from "@keyclash/shared";
+
+// Fixed at 30s for this batch — pre-match mode/duration selection (the
+// "Select Timer / Words" step from the full multiplayer flow) is Batch 4's
+// room-based multiplayer work. Quick-match ranked stays single-duration
+// until rooms exist to choose it in.
+const RANKED_DURATION_SECONDS = 30;
 
 interface CreateMatchBody {
   opponentId: string;
@@ -39,13 +45,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Opponent profile not found" }, { status: 404 });
   }
 
-  const textContent =
-    PRACTICE_TEXTS[Math.floor(Math.random() * PRACTICE_TEXTS.length)] ?? PRACTICE_TEXTS[0]!;
+  const textContent = generateWordStream(wordBufferSizeForDuration(RANKED_DURATION_SECONDS));
 
   const { data: match, error } = await service
     .from("matches")
     .insert({
       mode: "ranked_1v1",
+      mode_kind: "time",
+      duration_seconds: RANKED_DURATION_SECONDS,
       status: "in_progress",
       text_content: textContent,
       player_one_id: user.id,
@@ -58,5 +65,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to create match" }, { status: 500 });
   }
 
-  return NextResponse.json({ matchId: match.id, textContent });
+  return NextResponse.json({
+    matchId: match.id,
+    textContent,
+    durationSeconds: RANKED_DURATION_SECONDS,
+  });
 }
