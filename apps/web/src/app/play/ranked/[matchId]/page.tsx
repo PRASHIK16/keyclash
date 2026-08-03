@@ -35,6 +35,8 @@ export default async function RaceRoomPage({ params }: { params: Promise<{ match
         <RaceRoom
           matchId={matchId}
           textContent={match.text_content}
+          modeKind={match.mode_kind}
+          durationSeconds={match.duration_seconds}
           userId={user.id}
           isPlayerOne={isPlayerOne}
           opponentUsername={opponentProfile?.username ?? "opponent"}

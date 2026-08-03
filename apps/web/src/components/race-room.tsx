@@ -3,14 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { TypingRace, type TypingRaceResult, type Checkpoint } from "@/components/typing-race";
-import { ClashBurst } from "@/components/clash-burst";
-import { AnimatedNumber } from "@/components/animated-number";
-import { Button, Card, CardContent } from "@keyclash/ui";
+import { TimedTypingRace, type TimedRaceResult } from "@/components/timed-typing-race";
+import { ResultsScreen } from "@/components/results-screen";
+import type { Checkpoint } from "@/components/typing-race";
+import type { GameModeConfig } from "@keyclash/game-engine";
+import type { PlayerRaceStats } from "@keyclash/database";
 
 interface RaceRoomProps {
   matchId: string;
   textContent: string;
+  modeKind: string;
+  durationSeconds: number | null;
   userId: string;
   isPlayerOne: boolean;
   opponentUsername: string;
@@ -34,9 +37,13 @@ type Phase = "waiting_for_opponent" | "countdown" | "racing" | "waiting_for_resu
 interface FinalResult {
   playerOneWpm: number;
   playerTwoWpm: number;
+  playerOneAccuracy: number;
+  playerTwoAccuracy: number;
   winnerId: string | null;
   playerOneRatingDelta: number;
   playerTwoRatingDelta: number;
+  playerOneStats: PlayerRaceStats | null;
+  playerTwoStats: PlayerRaceStats | null;
 }
 
 const COUNTDOWN_MS = 3000;
@@ -44,6 +51,8 @@ const COUNTDOWN_MS = 3000;
 export function RaceRoom({
   matchId,
   textContent,
+  modeKind,
+  durationSeconds,
   userId,
   isPlayerOne,
   opponentUsername,
@@ -56,6 +65,11 @@ export function RaceRoom({
   const [opponentPresent, setOpponentPresent] = useState(false);
   const [result, setResult] = useState<FinalResult | null>(null);
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
+
+  const mode: GameModeConfig = {
+    kind: modeKind === "time" ? "time" : "zen",
+    durationSeconds: durationSeconds ?? undefined,
+  };
 
   function beginCountdown(startAt: number) {
     setPhase("countdown");
@@ -79,8 +93,7 @@ export function RaceRoom({
     channel
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
-        const count = Object.keys(state).length;
-        setOpponentPresent(count >= 2);
+        setOpponentPresent(Object.keys(state).length >= 2);
       })
       .on("broadcast", { event: "countdown" }, ({ payload }: { payload: CountdownPayload }) => {
         beginCountdown(payload.startAt);
@@ -93,14 +106,10 @@ export function RaceRoom({
         }
       })
       .on("broadcast", { event: "finished" }, ({ payload }: { payload: FinishedPayload }) => {
-        if (payload.senderId !== userId) {
-          attemptSubmit();
-        }
+        if (payload.senderId !== userId) attemptSubmit();
       })
       .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ userId });
-        }
+        if (status === "SUBSCRIBED") await channel.track({ userId });
       });
 
     return () => {
@@ -109,15 +118,9 @@ export function RaceRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, userId]);
 
-  // Player one is the deterministic countdown authority — once both sides
-  // are present, they broadcast a shared start timestamp 3 seconds out AND
-  // begin their own local countdown directly. IMPORTANT: Supabase does not
-  // echo a broadcast back to the client that sent it by default, so relying
-  // on "receive my own countdown broadcast" would leave player one stuck —
-  // same bug class as the lobby pairing fix. Calling beginCountdown()
-  // directly here (in addition to broadcasting for player two) closes that
-  // gap; both sides still start from the exact same startAt timestamp, so
-  // the race remains genuinely simultaneous regardless of latency.
+  // Player one is the countdown authority. Calls beginCountdown() directly
+  // for itself (Supabase doesn't echo a broadcast back to its own sender)
+  // in addition to broadcasting for player two.
   useEffect(() => {
     if (!opponentPresent || !isPlayerOne || phase !== "waiting_for_opponent") return;
     const channel = channelRef.current;
@@ -150,8 +153,32 @@ export function RaceRoom({
     });
   }
 
-  async function handleComplete(_raceResult: TypingRaceResult) {
+  // IMPORTANT: this fires independently for each player when THEIR OWN
+  // timer reaches zero — nobody finishing early ends the match for the
+  // other side. Both players' TimedTypingRace components started counting
+  // down from the exact same synced startAt, so both hit zero at
+  // essentially the same wall-clock moment regardless of typing speed.
+  async function handleComplete(raceResult: TimedRaceResult) {
     setPhase("waiting_for_result");
+
+    await fetch("/api/match/ranked/report-stats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        matchId,
+        stats: {
+          rawWpm: raceResult.rawWpm,
+          consistency: raceResult.consistency,
+          correctWords: raceResult.correctWords,
+          incorrectWords: raceResult.incorrectWords,
+          totalKeystrokes: raceResult.totalKeystrokes,
+          correctKeystrokes: raceResult.correctKeystrokes,
+          mistakes: raceResult.mistakes,
+          completionPct: raceResult.completionPct,
+        } satisfies PlayerRaceStats,
+      }),
+    });
+
     channelRef.current?.send({
       type: "broadcast",
       event: "finished",
@@ -167,20 +194,15 @@ export function RaceRoom({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ matchId }),
       });
-      if (res.status === 202) {
-        // Opponent hasn't finished yet — this client will get another
-        // chance via the "finished" broadcast handler above, or the next
-        // poll if we add one later. For now, silently wait.
-        return;
-      }
+      if (res.status === 202) return;
       const data = await res.json();
       if (res.ok) {
         setResult(data);
         setPhase("done");
       }
     } catch {
-      // Network hiccup — the other client's "finished" broadcast (or this
-      // one, retried) will trigger another attempt.
+      // Network hiccup — the opponent's "finished" broadcast, or this
+      // client's own next attempt, will retry.
     }
   }
 
@@ -189,29 +211,32 @@ export function RaceRoom({
     const isDraw = result.winnerId === null;
     const myDelta = isPlayerOne ? result.playerOneRatingDelta : result.playerTwoRatingDelta;
     const myWpm = isPlayerOne ? result.playerOneWpm : result.playerTwoWpm;
+    const myAccuracy = isPlayerOne ? result.playerOneAccuracy : result.playerTwoAccuracy;
+    const opponentWpm = isPlayerOne ? result.playerTwoWpm : result.playerOneWpm;
+    const myStats = isPlayerOne ? result.playerOneStats : result.playerTwoStats;
 
     return (
-      <Card className="kc-float-up mx-auto max-w-md overflow-hidden text-center">
-        <CardContent className="space-y-3 py-10">
-          <ClashBurst />
-          <p className="font-display text-2xl font-extrabold text-kc-ink">
-            {isDraw ? "Draw" : won ? "Victory" : "Defeat"}
-          </p>
-          <p className="font-display text-5xl font-extrabold text-kc-accent">
-            <AnimatedNumber value={Math.round(myWpm)} />
-            <span className="ml-2 text-lg font-medium text-kc-ink-muted">wpm</span>
-          </p>
-          <p
-            className={`text-lg font-bold ${myDelta >= 0 ? "text-emerald-400" : "text-kc-danger"}`}
-          >
-            {myDelta >= 0 ? "+" : ""}
-            {myDelta} rating
-          </p>
-          <Button onClick={() => router.push("/play/ranked")} className="w-full">
-            Find another match
-          </Button>
-        </CardContent>
-      </Card>
+      <ResultsScreen
+        stats={{
+          wpm: myWpm,
+          accuracy: myAccuracy,
+          rawWpm: myStats?.rawWpm,
+          consistency: myStats?.consistency,
+          correctWords: myStats?.correctWords,
+          incorrectWords: myStats?.incorrectWords,
+          totalKeystrokes: myStats?.totalKeystrokes,
+          mistakes: myStats?.mistakes,
+          completionPct: myStats?.completionPct,
+        }}
+        ranked={{
+          outcome: isDraw ? "draw" : won ? "win" : "loss",
+          ratingDelta: myDelta,
+          opponentUsername,
+          opponentWpm,
+        }}
+        onPrimaryAction={() => router.push("/play/ranked")}
+        primaryActionLabel="Find another match"
+      />
     );
   }
 
@@ -236,7 +261,7 @@ export function RaceRoom({
     <div>
       <div className="mb-4 flex items-center justify-between text-xs text-kc-ink-muted">
         <span>vs {opponentUsername}</span>
-        {phase === "waiting_for_result" && <span>Waiting for result…</span>}
+        {phase === "waiting_for_result" && <span>Waiting for opponent to finish…</span>}
       </div>
       <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-kc-surface-3">
         <div
@@ -245,13 +270,15 @@ export function RaceRoom({
         />
       </div>
       <div className="flex justify-center">
-        <TypingRace
+        <TimedTypingRace
+          mode={mode}
           text={textContent}
           caretColor={caretColor}
           onProgress={handleProgress}
           onCheckpoint={handleCheckpoint}
           onComplete={handleComplete}
           disabled={phase === "waiting_for_result"}
+          syncStartImmediately
         />
       </div>
     </div>
