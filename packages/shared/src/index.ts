@@ -1,3 +1,5 @@
+export * from "./word-banks";
+
 export const APP_NAME = "Keyclash";
 
 export const PRACTICE_TEXTS: string[] = [
