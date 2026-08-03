@@ -100,20 +100,36 @@ export function TypingRace({
 
   return (
     <div className="w-full max-w-3xl">
-      <div className="mb-3 flex items-center gap-4 font-mono text-sm text-kc-ink-muted">
-        <span>
-          <span className="text-kc-accent font-semibold">{Math.round(liveWpm)}</span> wpm
-        </span>
-        <span>
-          <span className="text-kc-ink font-semibold">
-            {totalTyped > 0 ? calculateAccuracy(correctChars, totalTyped) : 100}
+      <div className="mb-3 flex items-center justify-between font-mono text-sm text-kc-ink-muted">
+        <div className="flex items-center gap-4">
+          <span>
+            <span className="text-kc-accent font-bold">{Math.round(liveWpm)}</span> wpm
           </span>
-          % acc
+          <span>
+            <span className="text-kc-ink font-semibold">
+              {totalTyped > 0 ? calculateAccuracy(correctChars, totalTyped) : 100}
+            </span>
+            % acc
+          </span>
+        </div>
+        <span className="text-xs">
+          {Math.min(100, Math.round((totalTyped / text.length) * 100))}%
         </span>
       </div>
 
+      <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-kc-surface-3">
+        <div
+          className="h-full rounded-full bg-kc-accent transition-all duration-150"
+          style={{ width: `${Math.min(100, (totalTyped / text.length) * 100)}%` }}
+        />
+      </div>
+
       <div
-        className="relative cursor-text rounded-xl border border-kc-border bg-kc-surface p-6 font-mono text-lg leading-relaxed tracking-wide"
+        className={`relative cursor-text rounded-xl border p-7 font-mono text-xl leading-relaxed tracking-wide transition-shadow duration-300 ${
+          startedAt && !finished
+            ? "border-kc-accent shadow-[0_0_0_1px_var(--kc-accent),0_0_32px_-8px_var(--kc-accent)]"
+            : "border-kc-border"
+        } bg-kc-surface`}
         onClick={() => inputRef.current?.focus()}
       >
         {text.split("").map((char, i) => {
@@ -124,12 +140,14 @@ export function TypingRace({
           }
           const isCaret = i === input.length;
           return (
-            <span
-              key={i}
-              className={className}
-              style={isCaret ? { borderLeft: `2px solid ${caretColor}` } : undefined}
-            >
-              {char}
+            <span key={i} className="relative">
+              {isCaret && (
+                <span
+                  className="kc-caret absolute -left-0.5 top-0 h-[1.2em] w-[2px]"
+                  style={{ backgroundColor: caretColor }}
+                />
+              )}
+              <span className={className}>{char}</span>
             </span>
           );
         })}
@@ -145,11 +163,6 @@ export function TypingRace({
           autoCapitalize="off"
         />
       </div>
-      {finished && (
-        <p className="mt-4 font-mono text-sm text-kc-ink-muted">
-          Result locked in — {Math.round(liveWpm)} wpm.
-        </p>
-      )}
     </div>
   );
 }
