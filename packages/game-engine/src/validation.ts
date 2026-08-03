@@ -162,14 +162,19 @@ export function deriveFinalResult(checkpoints: TypingCheckpoint[]): DerivedResul
     };
   }
 
-  // Progress must be monotonically non-decreasing across checkpoints —
-  // correctChars going backwards over time isn't possible in a real race.
+  // NOTE: we deliberately do NOT require correctChars to be non-decreasing
+  // across checkpoints. Backspacing to fix a typo is completely normal
+  // typing behavior and can legitimately lower correctChars between one
+  // checkpoint and the next — flagging that as "implausible" was a real bug
+  // (it penalized honest corrections, not cheating). What genuinely can't
+  // happen in a real race is elapsed time moving backwards, so that's the
+  // only ordering property worth enforcing here.
   for (let i = 1; i < checkpoints.length; i++) {
     const prev = checkpoints[i - 1];
     const curr = checkpoints[i];
     if (!prev || !curr) continue;
-    if (curr.correctChars < prev.correctChars || curr.elapsedMs < prev.elapsedMs) {
-      return { wpm, accuracy, isPlausible: false, reason: "Non-monotonic checkpoint sequence" };
+    if (curr.elapsedMs < prev.elapsedMs) {
+      return { wpm, accuracy, isPlausible: false, reason: "Checkpoint timestamps out of order" };
     }
   }
 
