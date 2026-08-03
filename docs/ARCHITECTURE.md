@@ -68,9 +68,46 @@ This is a conscious trade-off, not an oversight — full checkpoint-based
 validation is reserved for where it actually matters (ranked), keeping
 practice mode's implementation simple.
 
+## Ranked matchmaking & race architecture (M2)
+
+**Lobby (Realtime Presence, no server worker):** every client waiting for a
+match tracks its own presence (`userId`, `username`, `rating`, `joinedAt`) on
+a single shared channel (`lobby:ranked`). Supabase's Realtime service — not
+our own backend — is what keeps every connected client's view of "who's
+waiting" in sync. Because multiple clients observe the exact same presence
+state simultaneously, pairing has to be deterministic and duplicate-safe: of
+any two waiting players, only the one whose user id sorts lower is
+responsible for calling the match-creation endpoint, then broadcasts the
+result so both sides navigate to the race room. This avoids needing a
+persistent background matchmaking worker process — infrastructure this
+project deliberately doesn't have.
+
+**Race room countdown:** once both players' presence is visible on the
+per-match channel (`match:{matchId}`), player one (chosen simply by being
+`player_one_id` on the match row — no special capability, just a
+tie-breaker) broadcasts a single shared `startAt` timestamp 3 seconds in the
+future. Both clients drive their own countdown UI off that same timestamp
+rather than off "when I received the message," so the race starts at the
+same instant regardless of small latency differences between the two
+players' connections.
+
+**Anti-cheat, made concrete:** during the race, each client inserts its own
+`match_events` checkpoint rows directly (RLS permits `auth.uid() =
+player_id`, nothing else) roughly every 3 seconds and once more at
+completion. The submit endpoint (`api/match/ranked/submit`) never asks the
+client "what was your WPM" — it reads both players' server-timestamped
+checkpoints straight from Postgres and derives the final WPM/accuracy itself
+(`deriveFinalResult` in `packages/game-engine`), rejecting implausible
+sequences (WPM over ~250, non-monotonic progress) by zeroing that side's
+score rather than crashing the match. This endpoint is also idempotent —
+either player's client can call it, and calling it twice (a common race when
+both sides finish close together) just returns the already-computed result
+the second time.
+
 ## What's deferred to later milestones
 
-- Ranked 1v1 real-time matchmaking (Supabase Realtime presence + broadcast)
+- Rating-banded matchmaking, abandonment/forfeit handling (see M2 known
+  limitations in `docs/ROADMAP.md`)
 - Sprint/Survival/Coding-syntax modes
 - Guilds, spectator mode, tournaments
 - AI Coach, weakness heatmaps

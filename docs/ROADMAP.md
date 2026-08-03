@@ -13,16 +13,26 @@
 - [x] Public profile pages with match history
 - [x] Dark, competitive-gaming visual identity (violet + electric lime)
 
-## 🔜 M2 — Ranked & more modes
+## ✅ M2 — Ranked & real-time matchmaking (this delivery)
 
-- **Ranked 1v1 real-time matchmaking** — Supabase Realtime presence-based
-  lobby, deterministic pairing, live race room, checkpoint-based anti-cheat
-  validation wired to the Elo engine (all the underlying math already ships
-  in M1 — `packages/game-engine` — this milestone is the matchmaking +
-  real-time UI layer on top of it)
-- Sprint, Survival, Coding-syntax modes
-- Weekly + country leaderboards, achievements
-- Zen mode (untimed, no-pressure variant of practice)
+- [x] Realtime presence-based matchmaking lobby (no server worker process needed)
+- [x] Synchronized 3-2-1 countdown via Realtime broadcast
+- [x] Live opponent progress bar during the race
+- [x] Server-side checkpoint-based result derivation (never trusts a client-claimed WPM for ranked)
+- [x] Elo rating update wired end-to-end, idempotent match finalization
+- [x] Ranked mode unlocked in the Play hub
+
+**Known, deliberate limitations carried into M3** (not bugs — genuine scope
+cuts to ship M2 in one focused batch):
+
+- Pairing is join-order only, not rating-banded — a 900-rated and a
+  2000-rated player can be paired together. Skill-based matchmaking bands
+  are a small addition on top of the existing lobby, planned for M3.
+- No abandonment/forfeit handling yet — if an opponent closes their tab
+  mid-race, the match stays `in_progress` indefinitely rather than
+  auto-resolving. A grace-period timeout is the fix, planned for M3.
+- Single global lobby (no region or rating separation) — fine at low
+  concurrent user counts, revisit if/when queue times become a problem.
 
 ## 🔜 M3 — Social & competitive structure
 
