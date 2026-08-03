@@ -43,8 +43,9 @@ export function RankedLobby({
   rating: number;
 }) {
   const router = useRouter();
-  const [status, setStatus] = useState<"searching" | "matched">("searching");
+  const [status, setStatus] = useState<"searching" | "matched" | "error">("searching");
   const [waitingCount, setWaitingCount] = useState(1);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hasTriggeredRef = useRef(false);
 
   useEffect(() => {
@@ -108,20 +109,19 @@ export function RankedLobby({
           body: JSON.stringify({ opponentId }),
         });
         if (!res.ok) {
+          // IMPORTANT: this used to fail silently, leaving both players
+          // stuck on "Searching..." forever with no indication anything
+          // was wrong — usually because the database schema was out of
+          // sync with the code (a missing migration). Surface it instead.
+          const errorBody = await res.json().catch(() => ({ error: "Unknown error" }));
+          console.error("Ranked match creation failed:", res.status, errorBody);
+          setStatus("error");
+          setErrorMessage(errorBody.error ?? `Match creation failed (HTTP ${res.status})`);
           hasTriggeredRef.current = false;
           return;
         }
         const data = await res.json();
 
-        // IMPORTANT: Supabase does not deliver a broadcast back to the
-        // client that sent it (no `self: true` on this channel), so the
-        // player who creates the match would otherwise never receive their
-        // own "match_created" event and would be stuck on this screen
-        // forever. Navigate directly here for self; broadcast separately so
-        // the *opponent's* client (which never called this function) still
-        // finds out and navigates too. Order matters: send the broadcast
-        // BEFORE tearing down the channel — removeChannel unsubscribes it,
-        // so a send() issued afterward would silently never reach anyone.
         setStatus("matched");
         channel.send({
           type: "broadcast",
@@ -131,7 +131,10 @@ export function RankedLobby({
         channel.untrack();
         supabase.removeChannel(channel);
         router.push(`/play/ranked/${data.matchId}`);
-      } catch {
+      } catch (err) {
+        console.error("Ranked match creation threw:", err);
+        setStatus("error");
+        setErrorMessage("Couldn't reach the server. Check your connection and try again.");
         hasTriggeredRef.current = false;
       }
     }
@@ -141,6 +144,23 @@ export function RankedLobby({
       supabase.removeChannel(channel);
     };
   }, [userId, username, rating, router]);
+
+  if (status === "error") {
+    return (
+      <div className="flex flex-col items-center gap-4 py-16 text-center">
+        <p className="font-display text-lg font-bold text-kc-danger">
+          Couldn&apos;t create a match
+        </p>
+        <p className="max-w-sm text-sm text-kc-ink-muted">{errorMessage}</p>
+        <button
+          onClick={() => router.refresh()}
+          className="rounded-lg border border-kc-border bg-kc-surface-2 px-4 py-2 text-sm font-medium text-kc-ink hover:bg-kc-surface-3"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-6 py-16 text-center">
