@@ -62,6 +62,9 @@ export function TimedTypingRace({
   const wpmSamplesRef = useRef<number[]>([]);
   const totalKeystrokesRef = useRef(0);
   const mistakesRef = useRef(0);
+  const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const [rowOfWord, setRowOfWord] = useState<number[]>([]);
+  const [lineHeight, setLineHeight] = useState(44);
 
   const correctChars = countCorrectChars(text, input);
   const totalTyped = input.length;
@@ -181,6 +184,47 @@ export function TimedTypingRace({
     return () => clearInterval(interval);
   }, [startedAt, finished, correctChars]);
 
+  const words = text.split(" ");
+  const activeWordIndex = Math.max(0, input.split(" ").length - 1);
+
+  // Word wrapping into rows depends only on container width and the word
+  // list itself — not on typing progress — so this only needs to run once
+  // per race (and on resize), not on every keystroke.
+  useEffect(() => {
+    function computeRows() {
+      const rowTops: number[] = [];
+      const rowIndexByWord: number[] = [];
+      for (const el of wordRefs.current) {
+        if (!el) {
+          rowIndexByWord.push(0);
+          continue;
+        }
+        const top = el.offsetTop;
+        let rowIdx = rowTops.findIndex((t) => Math.abs(t - top) < 4);
+        if (rowIdx === -1) {
+          rowTops.push(top);
+          rowIdx = rowTops.length - 1;
+        }
+        rowIndexByWord.push(rowIdx);
+      }
+      setRowOfWord(rowIndexByWord);
+      if (rowTops.length > 1) {
+        const first = rowTops[0];
+        const second = rowTops[1];
+        if (first !== undefined && second !== undefined) setLineHeight(second - first);
+      }
+    }
+    // Two rAF ticks: one for layout to settle after the words render, one
+    // safety pass in case fonts finished loading a frame late.
+    requestAnimationFrame(() => requestAnimationFrame(computeRows));
+    window.addEventListener("resize", computeRows);
+    return () => window.removeEventListener("resize", computeRows);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
+
+  const activeRow = rowOfWord[activeWordIndex] ?? 0;
+  const scrollOffsetPx = activeRow * lineHeight;
+
   const progressPct = Math.min(100, Math.round((totalTyped / text.length) * 100));
 
   return (
@@ -217,32 +261,67 @@ export function TimedTypingRace({
       </div>
 
       <div
-        className={`relative cursor-text rounded-xl border p-7 font-mono text-xl leading-relaxed tracking-wide transition-shadow duration-300 ${
+        className={`relative cursor-text overflow-hidden rounded-xl border p-7 font-mono text-xl leading-relaxed tracking-wide transition-shadow duration-300 ${
           startedAt && !finished
             ? "border-kc-accent shadow-[0_0_0_1px_var(--kc-accent),0_0_32px_-8px_var(--kc-accent)]"
             : "border-kc-border"
         } bg-kc-surface`}
+        style={{ height: lineHeight * 3 }}
         onClick={() => inputRef.current?.focus()}
       >
-        {text.split("").map((char, i) => {
-          const typedChar = input[i];
-          let className = "text-kc-ink-muted";
-          if (typedChar !== undefined) {
-            className = typedChar === char ? "text-kc-ink" : "text-kc-danger bg-kc-danger/10";
-          }
-          const isCaret = i === input.length;
-          return (
-            <span key={i} className="relative">
-              {isCaret && (
+        <div
+          className="flex flex-wrap gap-x-[1ch] gap-y-2 transition-transform duration-200 ease-out"
+          style={{ transform: `translateY(-${scrollOffsetPx}px)` }}
+        >
+          {(() => {
+            let globalIndex = 0;
+            return words.map((word, wIdx) => {
+              const wordStartIndex = globalIndex;
+              const isActiveWord = wIdx === activeWordIndex;
+              const chars = word.split("").map((char, ci) => {
+                const idx = wordStartIndex + ci;
+                const typedChar = input[idx];
+                let className = "text-kc-ink-muted";
+                if (typedChar !== undefined) {
+                  className = typedChar === char ? "text-kc-ink" : "text-kc-danger bg-kc-danger/10";
+                }
+                const isCaret = idx === input.length;
+                return (
+                  <span key={ci} className="relative">
+                    {isCaret && (
+                      <span
+                        className="kc-caret absolute -left-0.5 top-0 h-[1.2em] w-[2px]"
+                        style={{ backgroundColor: caretColor }}
+                      />
+                    )}
+                    <span className={className}>{char}</span>
+                  </span>
+                );
+              });
+              const isWordStartCaret = wordStartIndex === input.length;
+              globalIndex += word.length + 1;
+              return (
                 <span
-                  className="kc-caret absolute -left-0.5 top-0 h-[1.2em] w-[2px]"
-                  style={{ backgroundColor: caretColor }}
-                />
-              )}
-              <span className={className}>{char}</span>
-            </span>
-          );
-        })}
+                  key={wIdx}
+                  ref={(el) => {
+                    wordRefs.current[wIdx] = el;
+                  }}
+                  className={`relative inline-block rounded px-0.5 transition-colors ${
+                    isActiveWord ? "bg-kc-accent/15" : ""
+                  }`}
+                >
+                  {isWordStartCaret && (
+                    <span
+                      className="kc-caret absolute -left-0.5 top-0 h-[1.2em] w-[2px]"
+                      style={{ backgroundColor: caretColor }}
+                    />
+                  )}
+                  {chars}
+                </span>
+              );
+            });
+          })()}
+        </div>
         <input
           ref={inputRef}
           value={input}
