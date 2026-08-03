@@ -63,6 +63,40 @@ cuts to ship M2 in one focused batch):
 - Ranked mode/duration selection UI (currently fixed at 30s Time mode —
   will be chosen by whoever creates the room once rooms exist)
 
+## ✅ M2.2 — Content modes, settings, and room multiplayer (this delivery)
+
+- [x] Quote, Numbers, Punctuation modes — real generators, wired into
+      Practice mode's UI alongside Time/Words/Zen
+- [x] Settings panel (`/settings`) with localStorage persistence: font size,
+      caret style (line/block/underline), keystroke sound (synthesized, no
+      audio files), live WPM/accuracy toggles, restart shortcut — wired into
+      the race engine, deliberately **not** wired into ranked matches (no
+      bailing out of a losing race via shortcut)
+- [x] Room-based multiplayer: create a room with chosen mode/duration, get a
+      shareable 6-character code, join by code, per-room Ready step, host
+      starts once everyone's ready — reuses the exact same race room and
+      Elo/anti-cheat pipeline as quick-match (`createRankedMatch()` helper
+      shared between both paths, no duplicated logic)
+
+**Still genuinely deferred:**
+
+- **Programming mode** — needs real syntax-aware content and probably
+  syntax highlighting; the mode-config architecture is ready for it
+  (`ModeNotImplementedError` will point here when someone tries to select
+  it), but the content itself isn't built
+- **Full theme system** (multiple color palettes, not just caret style) —
+  today's settings cover font/caret/sound/shortcuts, not a theme switcher
+- **>2-player rooms** — the current `rooms`/`room_participants` schema
+  supports N participants structurally, but the race itself (matches table's
+  hardcoded `player_one_id`/`player_two_id` columns, the race room UI, Elo
+  update logic) is still strictly 1v1. Real N-player races need a
+  `match_participants` table replacing those two fixed columns — a schema
+  migration and race-room rewrite, not a small addition
+- **Rating collusion safeguard for rooms** — room races affect Elo rating
+  exactly like quick-match does; two friends could currently trade wins to
+  inflate one account's rating. Worth a design pass before this becomes a
+  real product, not urgent for early testing
+
 ## 🔜 M3 — Social & competitive structure
 
 - Guilds/typing clubs
