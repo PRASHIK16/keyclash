@@ -57,6 +57,20 @@ export function RaceRoom({
   const [result, setResult] = useState<FinalResult | null>(null);
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
 
+  function beginCountdown(startAt: number) {
+    setPhase("countdown");
+    const tick = () => {
+      const remaining = Math.max(0, startAt - Date.now());
+      setCountdownRemaining(Math.ceil(remaining / 1000));
+      if (remaining <= 0) {
+        setPhase("racing");
+      } else {
+        requestAnimationFrame(tick);
+      }
+    };
+    tick();
+  }
+
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase.channel(`match:${matchId}`, { config: { presence: { key: userId } } });
@@ -69,17 +83,7 @@ export function RaceRoom({
         setOpponentPresent(count >= 2);
       })
       .on("broadcast", { event: "countdown" }, ({ payload }: { payload: CountdownPayload }) => {
-        setPhase("countdown");
-        const tick = () => {
-          const remaining = Math.max(0, payload.startAt - Date.now());
-          setCountdownRemaining(Math.ceil(remaining / 1000));
-          if (remaining <= 0) {
-            setPhase("racing");
-          } else {
-            requestAnimationFrame(tick);
-          }
-        };
-        tick();
+        beginCountdown(payload.startAt);
       })
       .on("broadcast", { event: "progress" }, ({ payload }: { payload: ProgressPayload }) => {
         if (payload.senderId !== userId) {
@@ -106,10 +110,14 @@ export function RaceRoom({
   }, [matchId, userId]);
 
   // Player one is the deterministic countdown authority — once both sides
-  // are present, they broadcast a shared start timestamp 3 seconds out. Both
-  // clients (including player one) drive their local countdown display off
-  // that same timestamp, so the race genuinely starts simultaneously
-  // regardless of small network latency differences between the two.
+  // are present, they broadcast a shared start timestamp 3 seconds out AND
+  // begin their own local countdown directly. IMPORTANT: Supabase does not
+  // echo a broadcast back to the client that sent it by default, so relying
+  // on "receive my own countdown broadcast" would leave player one stuck —
+  // same bug class as the lobby pairing fix. Calling beginCountdown()
+  // directly here (in addition to broadcasting for player two) closes that
+  // gap; both sides still start from the exact same startAt timestamp, so
+  // the race remains genuinely simultaneous regardless of latency.
   useEffect(() => {
     if (!opponentPresent || !isPlayerOne || phase !== "waiting_for_opponent") return;
     const channel = channelRef.current;
@@ -120,6 +128,7 @@ export function RaceRoom({
       event: "countdown",
       payload: { startAt } satisfies CountdownPayload,
     });
+    beginCountdown(startAt);
   }, [opponentPresent, isPlayerOne, phase]);
 
   function handleProgress(correctChars: number, totalChars: number) {
