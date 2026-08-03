@@ -6,12 +6,15 @@ import {
   calculateCoinReward,
   calculateLevelFromXp,
 } from "@keyclash/game-engine";
+import type { PlayerRaceStats } from "@keyclash/database";
 
 interface PracticeSubmitBody {
-  mode: "practice_classic" | "practice_zen";
+  modeKind: string;
+  durationSeconds: number | null;
   textContent: string;
   wpm: number;
   accuracy: number;
+  stats: PlayerRaceStats;
 }
 
 export async function POST(request: Request) {
@@ -37,11 +40,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid result payload" }, { status: 400 });
   }
 
-  // Practice mode is explicitly unranked and low-stakes (no rating on the
-  // line), so we don't run full anti-cheat checkpoint validation here the
-  // way ranked matches will — the worst case is someone inflates their own
-  // XP/coins, which doesn't corrupt a competitive leaderboard. We still
-  // clamp to a sane ceiling above.
   const service = createServiceRoleClient();
 
   const xpAwarded = calculateXpReward(body.wpm, body.accuracy, "practice");
@@ -72,12 +70,15 @@ export async function POST(request: Request) {
     .eq("id", user.id);
 
   await service.from("matches").insert({
-    mode: body.mode,
+    mode: body.modeKind === "zen" ? "practice_zen" : "practice_classic",
+    mode_kind: body.modeKind,
+    duration_seconds: body.durationSeconds,
     status: "completed",
     text_content: body.textContent,
     player_one_id: user.id,
     player_one_wpm: body.wpm,
     player_one_accuracy: body.accuracy,
+    player_one_stats: body.stats,
     completed_at: new Date().toISOString(),
   });
 

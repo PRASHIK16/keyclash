@@ -1,76 +1,134 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { TypingRace, type TypingRaceResult } from "@/components/typing-race";
-import { ClashBurst } from "@/components/clash-burst";
-import { AnimatedNumber } from "@/components/animated-number";
-import { Button, Card, CardContent } from "@keyclash/ui";
+import { TimedTypingRace, type TimedRaceResult } from "@/components/timed-typing-race";
+import { ResultsScreen } from "@/components/results-screen";
+import { Card, CardContent, Button } from "@keyclash/ui";
+import { generateWordStream, wordBufferSizeForDuration } from "@keyclash/shared";
+import { TIME_MODE_DURATIONS, type GameModeConfig } from "@keyclash/game-engine";
 
-export function PracticeSession({
-  text,
-  caretColor,
-  mode,
-}: {
-  text: string;
-  caretColor: string;
-  mode: "practice_classic" | "practice_zen";
-}) {
-  const router = useRouter();
-  const [result, setResult] = useState<TypingRaceResult | null>(null);
-  const [saving, setSaving] = useState(false);
+type Phase = "select" | "racing" | "done";
+
+export function PracticeSession({ caretColor }: { caretColor: string }) {
+  const [phase, setPhase] = useState<Phase>("select");
+  const [mode, setMode] = useState<GameModeConfig>({ kind: "time", durationSeconds: 30 });
+  const [text, setText] = useState("");
+  const [result, setResult] = useState<TimedRaceResult | null>(null);
+  const [rewards, setRewards] = useState<{ xpAwarded: number; coinsAwarded: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleComplete(raceResult: TypingRaceResult) {
+  function startRace(selectedMode: GameModeConfig) {
+    setMode(selectedMode);
+    if (selectedMode.kind === "time") {
+      setText(generateWordStream(wordBufferSizeForDuration(selectedMode.durationSeconds ?? 30)));
+    } else if (selectedMode.kind === "zen") {
+      setText(generateWordStream(200));
+    }
+    setPhase("racing");
+  }
+
+  async function handleComplete(raceResult: TimedRaceResult) {
     setResult(raceResult);
-    setSaving(true);
-    setError(null);
+    setPhase("done");
 
     try {
       const res = await fetch("/api/match/practice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode,
+          modeKind: mode.kind,
+          durationSeconds: mode.durationSeconds ?? null,
           textContent: text,
           wpm: raceResult.wpm,
           accuracy: raceResult.accuracy,
+          stats: {
+            rawWpm: raceResult.rawWpm,
+            consistency: raceResult.consistency,
+            correctWords: raceResult.correctWords,
+            incorrectWords: raceResult.incorrectWords,
+            totalKeystrokes: raceResult.totalKeystrokes,
+            correctKeystrokes: raceResult.correctKeystrokes,
+            mistakes: raceResult.mistakes,
+            completionPct: raceResult.completionPct,
+          },
         }),
       });
-      if (!res.ok) throw new Error("Failed to save result");
+      const data = await res.json();
+      if (res.ok) setRewards(data);
+      else setError(data.error ?? "Failed to save result");
     } catch (err) {
-      setError("Result didn't save — check your connection and try the next race.");
+      setError("Result didn't save — check your connection.");
       console.error(err);
-    } finally {
-      setSaving(false);
     }
   }
 
-  if (result) {
+  if (phase === "select") {
     return (
-      <Card className="kc-float-up mx-auto max-w-md overflow-hidden text-center">
-        <CardContent className="space-y-3 py-10">
-          <ClashBurst />
-          <p className="font-display text-5xl font-extrabold text-kc-accent">
-            <AnimatedNumber value={Math.round(result.wpm)} />
-            <span className="ml-2 text-lg font-medium text-kc-ink-muted">wpm</span>
-          </p>
-          <p className="text-kc-ink-muted">
-            <AnimatedNumber value={result.accuracy} decimals={1} />% accuracy
-          </p>
-          {saving && <p className="text-xs text-kc-ink-muted">Saving…</p>}
-          {error && <p className="text-xs text-kc-danger">{error}</p>}
-          <Button onClick={() => router.refresh()} className="w-full">
-            Race again
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            <p className="text-sm font-semibold text-kc-ink">Time Mode</p>
+            <div className="flex flex-wrap gap-2">
+              {TIME_MODE_DURATIONS.map((d) => (
+                <Button
+                  key={d}
+                  variant="secondary"
+                  onClick={() => startRace({ kind: "time", durationSeconds: d })}
+                >
+                  {d}s
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-6">
+            <p className="mb-3 text-sm font-semibold text-kc-ink">Zen Mode</p>
+            <Button variant="secondary" onClick={() => startRace({ kind: "zen" })}>
+              No timer — type until you&apos;re done
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (phase === "done" && result) {
+    return (
+      <ResultsScreen
+        stats={{
+          wpm: result.wpm,
+          rawWpm: result.rawWpm,
+          accuracy: result.accuracy,
+          correctWords: result.correctWords,
+          incorrectWords: result.incorrectWords,
+          totalKeystrokes: result.totalKeystrokes,
+          mistakes: result.mistakes,
+          consistency: result.consistency,
+          completionPct: result.completionPct,
+          xpAwarded: rewards?.xpAwarded,
+          coinsAwarded: rewards?.coinsAwarded,
+        }}
+        onPrimaryAction={() => {
+          setPhase("select");
+          setResult(null);
+          setRewards(null);
+          setError(null);
+        }}
+        primaryActionLabel="Race again"
+      />
     );
   }
 
   return (
-    <div className="flex justify-center">
-      <TypingRace text={text} caretColor={caretColor} onComplete={handleComplete} />
+    <div className="flex flex-col items-center">
+      {error && <p className="mb-3 text-sm text-kc-danger">{error}</p>}
+      <TimedTypingRace
+        mode={mode}
+        text={text}
+        caretColor={caretColor}
+        onComplete={handleComplete}
+      />
     </div>
   );
 }
