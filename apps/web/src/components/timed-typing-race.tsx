@@ -11,6 +11,9 @@ import {
 import type { FullRaceStats } from "@keyclash/game-engine";
 import type { GameModeConfig } from "@keyclash/game-engine";
 import type { Checkpoint } from "./typing-race";
+import { useSettings } from "@/lib/use-settings";
+import { FONT_SIZE_CLASSES } from "@keyclash/shared";
+import { playKeystrokeSound } from "@/lib/keystroke-sound";
 
 export interface TimedRaceResult extends FullRaceStats {
   checkpoints: Checkpoint[];
@@ -33,6 +36,13 @@ interface TimedTypingRaceProps {
    * starts on your first keystroke so idling beforehand doesn't cost you time.
    */
   syncStartImmediately?: boolean;
+  /**
+   * Fires when the user presses their configured restart shortcut
+   * (Settings → Controls). Only wire this up for solo/practice contexts —
+   * never pass it in ranked mode, where restarting mid-race would let a
+   * player bail out of a losing position without consequence.
+   */
+  onRestartShortcut?: () => void;
 }
 
 const CHECKPOINT_INTERVAL_MS = 3000;
@@ -47,7 +57,9 @@ export function TimedTypingRace({
   onProgress,
   disabled = false,
   syncStartImmediately = false,
+  onRestartShortcut,
 }: TimedTypingRaceProps) {
+  const { settings } = useSettings();
   const [input, setInput] = useState("");
   const [startedAt, setStartedAt] = useState<number | null>(
     syncStartImmediately ? Date.now() : null
@@ -103,9 +115,18 @@ export function TimedTypingRace({
   }, [finished, startedAt, correctChars, totalTyped, text, input, onComplete, onCheckpoint]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    const shortcutKey = settings.restartShortcut === "tab" ? "Tab" : "Escape";
+    if (e.key === shortcutKey && onRestartShortcut) {
+      e.preventDefault();
+      onRestartShortcut();
+      return;
+    }
+
     if (disabled || finished) return;
     const isCountedKey = e.key === "Backspace" || e.key === " " || e.key.length === 1;
     if (!isCountedKey) return;
+
+    if (settings.soundEffects) playKeystrokeSound();
 
     totalKeystrokesRef.current += 1;
 
@@ -128,7 +149,12 @@ export function TimedTypingRace({
     setInput(value);
     onProgress?.(countCorrectChars(text, value), value.length);
 
-    if (mode.kind === "words" && value.length >= text.length) {
+    const finishesOnCompletion =
+      mode.kind === "words" ||
+      mode.kind === "quote" ||
+      mode.kind === "numbers" ||
+      mode.kind === "punctuation";
+    if (finishesOnCompletion && value.length >= text.length) {
       setTimeout(finish, 0);
     }
   }
@@ -231,15 +257,19 @@ export function TimedTypingRace({
     <div className="w-full max-w-3xl">
       <div className="mb-3 flex items-center justify-between font-mono text-sm text-kc-ink-muted">
         <div className="flex items-center gap-4">
-          <span>
-            <span className="text-kc-accent font-bold">{Math.round(liveWpm)}</span> wpm
-          </span>
-          <span>
-            <span className="text-kc-ink font-semibold">
-              {totalTyped > 0 ? calculateAccuracy(correctChars, totalTyped) : 100}
+          {settings.liveWpm && (
+            <span>
+              <span className="text-kc-accent font-bold">{Math.round(liveWpm)}</span> wpm
             </span>
-            % acc
-          </span>
+          )}
+          {settings.liveAccuracy && (
+            <span>
+              <span className="text-kc-ink font-semibold">
+                {totalTyped > 0 ? calculateAccuracy(correctChars, totalTyped) : 100}
+              </span>
+              % acc
+            </span>
+          )}
         </div>
         {mode.kind === "time" ? (
           <span className="font-bold text-kc-ink">{timeRemaining}s</span>
@@ -261,7 +291,7 @@ export function TimedTypingRace({
       </div>
 
       <div
-        className={`relative cursor-text overflow-hidden rounded-xl border p-7 font-mono text-xl leading-relaxed tracking-wide transition-shadow duration-300 ${
+        className={`relative cursor-text overflow-hidden rounded-xl border p-7 font-mono ${FONT_SIZE_CLASSES[settings.fontSize]} leading-relaxed tracking-wide transition-shadow duration-300 ${
           startedAt && !finished
             ? "border-kc-accent shadow-[0_0_0_1px_var(--kc-accent),0_0_32px_-8px_var(--kc-accent)]"
             : "border-kc-border"
@@ -288,12 +318,7 @@ export function TimedTypingRace({
                 const isCaret = idx === input.length;
                 return (
                   <span key={ci} className="relative">
-                    {isCaret && (
-                      <span
-                        className="kc-caret absolute -left-0.5 top-0 h-[1.2em] w-[2px]"
-                        style={{ backgroundColor: caretColor }}
-                      />
-                    )}
+                    {isCaret && <Caret style={settings.caretStyle} color={caretColor} />}
                     <span className={className}>{char}</span>
                   </span>
                 );
@@ -310,12 +335,7 @@ export function TimedTypingRace({
                     isActiveWord ? "bg-kc-accent/15" : ""
                   }`}
                 >
-                  {isWordStartCaret && (
-                    <span
-                      className="kc-caret absolute -left-0.5 top-0 h-[1.2em] w-[2px]"
-                      style={{ backgroundColor: caretColor }}
-                    />
-                  )}
+                  {isWordStartCaret && <Caret style={settings.caretStyle} color={caretColor} />}
                   {chars}
                 </span>
               );
@@ -354,4 +374,29 @@ function countCorrectChars(target: string, typed: string): number {
     if (typed[i] === target[i]) count++;
   }
   return count;
+}
+
+function Caret({ style, color }: { style: "line" | "block" | "underline"; color: string }) {
+  if (style === "block") {
+    return (
+      <span
+        className="kc-caret absolute left-0 top-0 h-[1.2em] w-[1ch] rounded-sm opacity-30"
+        style={{ backgroundColor: color }}
+      />
+    );
+  }
+  if (style === "underline") {
+    return (
+      <span
+        className="kc-caret absolute bottom-0 left-0 h-[2px] w-[1ch]"
+        style={{ backgroundColor: color }}
+      />
+    );
+  }
+  return (
+    <span
+      className="kc-caret absolute -left-0.5 top-0 h-[1.2em] w-[2px]"
+      style={{ backgroundColor: color }}
+    />
+  );
 }

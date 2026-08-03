@@ -4,8 +4,8 @@ import { useState } from "react";
 import { TimedTypingRace, type TimedRaceResult } from "@/components/timed-typing-race";
 import { ResultsScreen } from "@/components/results-screen";
 import { Card, CardContent, Button } from "@keyclash/ui";
-import { generateWordStream, wordBufferSizeForDuration } from "@keyclash/shared";
-import { TIME_MODE_DURATIONS, type GameModeConfig } from "@keyclash/game-engine";
+import { generateTextForMode } from "@keyclash/shared";
+import { TIME_MODE_DURATIONS, WORDS_MODE_COUNTS, type GameModeConfig } from "@keyclash/game-engine";
 
 type Phase = "select" | "racing" | "done";
 
@@ -19,11 +19,7 @@ export function PracticeSession({ caretColor }: { caretColor: string }) {
 
   function startRace(selectedMode: GameModeConfig) {
     setMode(selectedMode);
-    if (selectedMode.kind === "time") {
-      setText(generateWordStream(wordBufferSizeForDuration(selectedMode.durationSeconds ?? 30)));
-    } else if (selectedMode.kind === "zen") {
-      setText(generateWordStream(200));
-    }
+    setText(generateTextForMode(selectedMode));
     setPhase("racing");
   }
 
@@ -67,7 +63,7 @@ export function PracticeSession({ caretColor }: { caretColor: string }) {
       <div className="space-y-6">
         <Card>
           <CardContent className="space-y-3 py-6">
-            <p className="text-sm font-semibold text-kc-ink">Time Mode</p>
+            <p className="text-sm font-semibold text-kc-ink">Time</p>
             <div className="flex flex-wrap gap-2">
               {TIME_MODE_DURATIONS.map((d) => (
                 <Button
@@ -81,9 +77,66 @@ export function PracticeSession({ caretColor }: { caretColor: string }) {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            <p className="text-sm font-semibold text-kc-ink">Words</p>
+            <div className="flex flex-wrap gap-2">
+              {WORDS_MODE_COUNTS.map((w) => (
+                <Button
+                  key={w}
+                  variant="secondary"
+                  onClick={() => startRace({ kind: "words", wordCount: w })}
+                >
+                  {w}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card>
+            <CardContent className="space-y-3 py-6">
+              <p className="text-sm font-semibold text-kc-ink">Quote</p>
+              <Button
+                variant="secondary"
+                onClick={() => startRace({ kind: "quote" })}
+                className="w-full"
+              >
+                Random quote
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="space-y-3 py-6">
+              <p className="text-sm font-semibold text-kc-ink">Numbers</p>
+              <Button
+                variant="secondary"
+                onClick={() => startRace({ kind: "numbers", wordCount: 25 })}
+                className="w-full"
+              >
+                25 numbers
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="space-y-3 py-6">
+              <p className="text-sm font-semibold text-kc-ink">Punctuation</p>
+              <Button
+                variant="secondary"
+                onClick={() => startRace({ kind: "punctuation", wordCount: 25 })}
+                className="w-full"
+              >
+                25 words
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardContent className="py-6">
-            <p className="mb-3 text-sm font-semibold text-kc-ink">Zen Mode</p>
+            <p className="mb-3 text-sm font-semibold text-kc-ink">Zen</p>
             <Button variant="secondary" onClick={() => startRace({ kind: "zen" })}>
               No timer — type until you&apos;re done
             </Button>
@@ -128,6 +181,12 @@ export function PracticeSession({ caretColor }: { caretColor: string }) {
         text={text}
         caretColor={caretColor}
         onComplete={handleComplete}
+        onRestartShortcut={() => {
+          setPhase("select");
+          setResult(null);
+          setRewards(null);
+          setError(null);
+        }}
       />
     </div>
   );
