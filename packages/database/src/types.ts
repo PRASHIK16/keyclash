@@ -114,6 +114,27 @@ export interface UserCosmetic {
   unlocked_at: string;
 }
 
+export type RoomStatus = "waiting" | "in_progress" | "completed" | "cancelled";
+
+export interface Room {
+  id: string;
+  code: string;
+  host_id: string;
+  mode_kind: string;
+  duration_seconds: number | null;
+  word_target: number | null;
+  status: RoomStatus;
+  match_id: string | null;
+  created_at: string;
+}
+
+export interface RoomParticipant {
+  room_id: string;
+  player_id: string;
+  is_ready: boolean;
+  joined_at: string;
+}
+
 export interface Friendship {
   requester_id: string;
   addressee_id: string;
@@ -173,6 +194,16 @@ export interface Database {
         Row: Friendship;
         Insert: Pick<Friendship, "requester_id" | "addressee_id">;
         Update: Partial<Friendship>;
+      };
+      rooms: {
+        Row: Room;
+        Insert: Partial<Room> & Pick<Room, "code" | "host_id">;
+        Update: Partial<Room>;
+      };
+      room_participants: {
+        Row: RoomParticipant;
+        Insert: Omit<RoomParticipant, "joined_at">;
+        Update: Partial<RoomParticipant>;
       };
     };
   };
