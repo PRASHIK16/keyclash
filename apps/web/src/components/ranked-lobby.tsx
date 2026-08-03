@@ -112,11 +112,25 @@ export function RankedLobby({
           return;
         }
         const data = await res.json();
+
+        // IMPORTANT: Supabase does not deliver a broadcast back to the
+        // client that sent it (no `self: true` on this channel), so the
+        // player who creates the match would otherwise never receive their
+        // own "match_created" event and would be stuck on this screen
+        // forever. Navigate directly here for self; broadcast separately so
+        // the *opponent's* client (which never called this function) still
+        // finds out and navigates too. Order matters: send the broadcast
+        // BEFORE tearing down the channel — removeChannel unsubscribes it,
+        // so a send() issued afterward would silently never reach anyone.
+        setStatus("matched");
         channel.send({
           type: "broadcast",
           event: "match_created",
           payload: { matchId: data.matchId, playerOneId: userId, playerTwoId: opponentId },
         });
+        channel.untrack();
+        supabase.removeChannel(channel);
+        router.push(`/play/ranked/${data.matchId}`);
       } catch {
         hasTriggeredRef.current = false;
       }
