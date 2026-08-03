@@ -52,9 +52,14 @@ export function TypingRace({
     const elapsedMs = Date.now() - startedAt;
     const wpm = calculateWpm(correctChars, elapsedMs);
     const accuracy = calculateAccuracy(correctChars, totalTyped);
+
+    const finalCheckpoint: Checkpoint = { correctChars, totalChars: totalTyped, elapsedMs };
+    checkpointsRef.current.push(finalCheckpoint);
+    onCheckpoint?.(finalCheckpoint);
+
     setFinished(true);
     onComplete({ wpm, accuracy, elapsedMs, checkpoints: checkpointsRef.current });
-  }, [startedAt, finished, correctChars, totalTyped, onComplete]);
+  }, [startedAt, finished, correctChars, totalTyped, onComplete, onCheckpoint]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (disabled || finished) return;
