@@ -125,3 +125,53 @@ export function validateMatchResult(
 
   return { isValid: true, computedWpm, computedAccuracy };
 }
+
+export interface DerivedResult {
+  wpm: number;
+  accuracy: number;
+  isPlausible: boolean;
+  reason?: string;
+}
+
+/**
+ * For ranked matches we don't need a "claimed" number from the client at
+ * all — every checkpoint already arrived with a server timestamp, so the
+ * final result can be derived entirely from data the client couldn't have
+ * forged. This is stricter than validateMatchResult() above (which exists
+ * for the case where you *do* have a claimed value to sanity-check against).
+ */
+export function deriveFinalResult(checkpoints: TypingCheckpoint[]): DerivedResult {
+  if (checkpoints.length === 0) {
+    return { wpm: 0, accuracy: 0, isPlausible: false, reason: "No checkpoints recorded" };
+  }
+
+  const last = checkpoints[checkpoints.length - 1];
+  if (!last) {
+    return { wpm: 0, accuracy: 0, isPlausible: false, reason: "No checkpoints recorded" };
+  }
+
+  const wpm = calculateWpm(last.correctChars, last.elapsedMs);
+  const accuracy = calculateAccuracy(last.correctChars, last.totalChars);
+
+  if (wpm > 250) {
+    return {
+      wpm,
+      accuracy,
+      isPlausible: false,
+      reason: `WPM (${wpm}) exceeds plausible human maximum`,
+    };
+  }
+
+  // Progress must be monotonically non-decreasing across checkpoints —
+  // correctChars going backwards over time isn't possible in a real race.
+  for (let i = 1; i < checkpoints.length; i++) {
+    const prev = checkpoints[i - 1];
+    const curr = checkpoints[i];
+    if (!prev || !curr) continue;
+    if (curr.correctChars < prev.correctChars || curr.elapsedMs < prev.elapsedMs) {
+      return { wpm, accuracy, isPlausible: false, reason: "Non-monotonic checkpoint sequence" };
+    }
+  }
+
+  return { wpm, accuracy, isPlausible: true };
+}
