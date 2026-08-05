@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/navbar";
+import { AddFriendButton } from "@/components/add-friend-button";
 import { Card, CardContent, CardHeader, CardTitle, Avatar, Badge } from "@keyclash/ui";
 import { getRankTier } from "@keyclash/game-engine";
 import { formatRelativeTime } from "@keyclash/shared";
@@ -8,6 +9,9 @@ import { formatRelativeTime } from "@keyclash/shared";
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -15,6 +19,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     .eq("username", username)
     .single();
   if (!profile) notFound();
+
+  const isOwnProfile = user?.id === profile.id;
 
   const { data: recentMatches } = await supabase
     .from("matches")
@@ -33,18 +39,21 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     <div className="min-h-screen bg-kc-bg">
       <Navbar />
       <main className="mx-auto max-w-3xl px-6 py-12">
-        <div className="flex items-center gap-4">
-          <Avatar
-            name={profile.display_name ?? profile.username}
-            imageUrl={profile.avatar_url}
-            size={64}
-          />
-          <div>
-            <h1 className="font-display text-2xl font-bold text-kc-ink">{profile.username}</h1>
-            <Badge variant="rank" style={{ color: tier.color }}>
-              {tier.name} · {profile.rating} rating
-            </Badge>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Avatar
+              name={profile.display_name ?? profile.username}
+              imageUrl={profile.avatar_url}
+              size={64}
+            />
+            <div>
+              <h1 className="font-display text-2xl font-bold text-kc-ink">{profile.username}</h1>
+              <Badge variant="rank" style={{ color: tier.color }}>
+                {tier.name} · {profile.rating} rating
+              </Badge>
+            </div>
           </div>
+          {!isOwnProfile && user && <AddFriendButton username={profile.username} />}
         </div>
 
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
