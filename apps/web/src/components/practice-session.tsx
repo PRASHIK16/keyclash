@@ -3,14 +3,30 @@
 import { useState } from "react";
 import { TimedTypingRace, type TimedRaceResult } from "@/components/timed-typing-race";
 import { ResultsScreen } from "@/components/results-screen";
-import { Card, CardContent, Button } from "@keyclash/ui";
+import { Button } from "@keyclash/ui";
 import { generateTextForMode } from "@keyclash/shared";
-import { TIME_MODE_DURATIONS, WORDS_MODE_COUNTS, type GameModeConfig } from "@keyclash/game-engine";
+import {
+  TIME_MODE_DURATIONS,
+  WORDS_MODE_COUNTS,
+  type GameModeConfig,
+  type GameModeKind,
+} from "@keyclash/game-engine";
 
 type Phase = "select" | "racing" | "done";
 
+const MODE_TABS: { kind: GameModeKind; label: string }[] = [
+  { kind: "time", label: "time" },
+  { kind: "words", label: "words" },
+  { kind: "quote", label: "quote" },
+  { kind: "numbers", label: "numbers" },
+  { kind: "punctuation", label: "punctuation" },
+  { kind: "zen", label: "zen" },
+  { kind: "custom", label: "custom" },
+];
+
 export function PracticeSession({ caretColor }: { caretColor: string }) {
   const [phase, setPhase] = useState<Phase>("select");
+  const [activeTab, setActiveTab] = useState<GameModeKind>("time");
   const [mode, setMode] = useState<GameModeConfig>({ kind: "time", durationSeconds: 30 });
   const [text, setText] = useState("");
   const [customInput, setCustomInput] = useState("");
@@ -70,104 +86,77 @@ export function PracticeSession({ caretColor }: { caretColor: string }) {
 
   if (phase === "select") {
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardContent className="space-y-3 py-6">
-            <p className="text-sm font-semibold text-kc-ink">Time</p>
-            <div className="flex flex-wrap gap-2">
-              {TIME_MODE_DURATIONS.map((d) => (
-                <Button
-                  key={d}
-                  variant="secondary"
-                  onClick={() => startRace({ kind: "time", durationSeconds: d })}
-                >
-                  {d}s
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-3 py-6">
-            <p className="text-sm font-semibold text-kc-ink">Words</p>
-            <div className="flex flex-wrap gap-2">
-              {WORDS_MODE_COUNTS.map((w) => (
-                <Button
-                  key={w}
-                  variant="secondary"
-                  onClick={() => startRace({ kind: "words", wordCount: w })}
-                >
-                  {w}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardContent className="space-y-3 py-6">
-              <p className="text-sm font-semibold text-kc-ink">Quote</p>
-              <Button
-                variant="secondary"
-                onClick={() => startRace({ kind: "quote" })}
-                className="w-full"
-              >
-                Random quote
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="space-y-3 py-6">
-              <p className="text-sm font-semibold text-kc-ink">Numbers</p>
-              <Button
-                variant="secondary"
-                onClick={() => startRace({ kind: "numbers", wordCount: 25 })}
-                className="w-full"
-              >
-                25 numbers
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="space-y-3 py-6">
-              <p className="text-sm font-semibold text-kc-ink">Punctuation</p>
-              <Button
-                variant="secondary"
-                onClick={() => startRace({ kind: "punctuation", wordCount: 25 })}
-                className="w-full"
-              >
-                25 words
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="flex flex-col items-center gap-4">
+        {/* Row 1: mode tabs — compact pills in a single row, Monkeytype-style */}
+        <div className="flex flex-wrap items-center justify-center gap-1 rounded-full border border-kc-border bg-kc-surface px-2 py-1.5">
+          {MODE_TABS.map((tab) => (
+            <button
+              key={tab.kind}
+              onClick={() => setActiveTab(tab.kind)}
+              className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors ${
+                activeTab === tab.kind
+                  ? "bg-kc-accent text-black"
+                  : "text-kc-ink-muted hover:text-kc-ink"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <Card>
-          <CardContent className="py-6">
-            <p className="mb-3 text-sm font-semibold text-kc-ink">Zen</p>
-            <Button variant="secondary" onClick={() => startRace({ kind: "zen" })}>
-              No timer — type until you&apos;re done
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Row 2: options for whichever mode tab is active */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {activeTab === "time" &&
+            TIME_MODE_DURATIONS.map((d) => (
+              <PillButton key={d} onClick={() => startRace({ kind: "time", durationSeconds: d })}>
+                {d}
+              </PillButton>
+            ))}
 
-        <Card>
-          <CardContent className="space-y-3 py-6">
-            <p className="text-sm font-semibold text-kc-ink">Custom text</p>
-            <textarea
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              placeholder="Paste or type the text you want to race against…"
-              rows={4}
-              className="w-full rounded-lg border border-kc-border bg-kc-surface-2 p-3 text-sm text-kc-ink outline-none focus:border-kc-accent"
-            />
-            <Button onClick={startCustomRace} disabled={!customInput.trim()}>
-              Start custom race
-            </Button>
-          </CardContent>
-        </Card>
+          {activeTab === "words" &&
+            WORDS_MODE_COUNTS.map((w) => (
+              <PillButton key={w} onClick={() => startRace({ kind: "words", wordCount: w })}>
+                {w}
+              </PillButton>
+            ))}
+
+          {activeTab === "quote" && (
+            <PillButton onClick={() => startRace({ kind: "quote" })}>start</PillButton>
+          )}
+
+          {activeTab === "numbers" && (
+            <PillButton onClick={() => startRace({ kind: "numbers", wordCount: 25 })}>
+              start
+            </PillButton>
+          )}
+
+          {activeTab === "punctuation" && (
+            <PillButton onClick={() => startRace({ kind: "punctuation", wordCount: 25 })}>
+              start
+            </PillButton>
+          )}
+
+          {activeTab === "zen" && (
+            <PillButton onClick={() => startRace({ kind: "zen" })}>start</PillButton>
+          )}
+
+          {activeTab === "custom" && (
+            <div className="w-full max-w-xl space-y-3">
+              <textarea
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                placeholder="Paste or type the text you want to race against…"
+                rows={3}
+                className="w-full rounded-lg border border-kc-border bg-kc-surface-2 p-3 text-sm text-kc-ink outline-none focus:border-kc-accent"
+              />
+              <div className="flex justify-center">
+                <Button onClick={startCustomRace} disabled={!customInput.trim()}>
+                  Start custom race
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -215,5 +204,16 @@ export function PracticeSession({ caretColor }: { caretColor: string }) {
         }}
       />
     </div>
+  );
+}
+
+function PillButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-full border border-kc-border bg-kc-surface px-4 py-1.5 text-sm font-medium text-kc-ink transition-colors hover:border-kc-accent hover:text-kc-accent"
+    >
+      {children}
+    </button>
   );
 }
