@@ -8,6 +8,7 @@ import {
   calculateCoinReward,
   calculateLevelFromXp,
 } from "@keyclash/game-engine";
+import { updateStreak } from "@/lib/streak";
 
 interface SubmitBody {
   matchId: string;
@@ -177,6 +178,8 @@ export async function POST(request: Request) {
     .eq("id", body.matchId)
     .select("player_one_stats, player_two_stats")
     .single();
+
+  await Promise.all([updateStreak(match.player_one_id!), updateStreak(match.player_two_id!)]);
 
   return NextResponse.json({
     status: "completed",

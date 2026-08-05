@@ -6,6 +6,7 @@ import {
   calculateCoinReward,
   calculateLevelFromXp,
 } from "@keyclash/game-engine";
+import { updateStreak } from "@/lib/streak";
 
 interface DailySubmitBody {
   challengeDate: string;
@@ -83,6 +84,8 @@ export async function POST(request: Request) {
       })
       .eq("id", user.id);
   }
+
+  await updateStreak(user.id);
 
   return NextResponse.json({ xpAwarded, coinsAwarded });
 }

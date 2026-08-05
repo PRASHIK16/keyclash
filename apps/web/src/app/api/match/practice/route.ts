@@ -7,6 +7,7 @@ import {
   calculateLevelFromXp,
 } from "@keyclash/game-engine";
 import type { PlayerRaceStats } from "@keyclash/database";
+import { updateStreak } from "@/lib/streak";
 
 interface PracticeSubmitBody {
   modeKind: string;
@@ -81,6 +82,8 @@ export async function POST(request: Request) {
     player_one_stats: body.stats,
     completed_at: new Date().toISOString(),
   });
+
+  await updateStreak(user.id);
 
   return NextResponse.json({ xpAwarded, coinsAwarded, newLevel: level });
 }
