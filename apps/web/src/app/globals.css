@@ -88,9 +88,18 @@ body {
 .kc-clash-left { animation: kc-clash-shard-left 700ms ease-out forwards; }
 .kc-clash-right { animation: kc-clash-shard-right 700ms ease-out forwards; }
 .kc-clash-flash { animation: kc-clash-flash 700ms ease-out forwards; }
-.kc-caret { animation: kc-caret-blink 1.1s step-end infinite; }
-.kc-float-up { animation: kc-float-up 500ms ease-out both; }
-.kc-pulse-glow { animation: kc-pulse-glow 2.4s ease-in-out infinite; }
+.kc-caret { animation: kc-caret-blink calc(1.1s * var(--kc-anim-speed, 1)) step-end infinite; }
+.kc-float-up { animation: kc-float-up calc(500ms * var(--kc-anim-speed, 1)) ease-out both; }
+.kc-pulse-glow { animation: kc-pulse-glow calc(2.4s * var(--kc-anim-speed, 1)) ease-in-out infinite; }
+
+/* Focus mode: fade everything except the typing area itself while a race is
+   active. The typing area is inside <main>, so we target the header (nav)
+   specifically rather than trying to guess every possible sibling. */
+body.kc-focus-mode header {
+  opacity: 0.12;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .kc-clash-left, .kc-clash-right, .kc-clash-flash, .kc-caret, .kc-float-up, .kc-pulse-glow {
