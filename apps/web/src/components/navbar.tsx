@@ -33,6 +33,9 @@ export async function Navbar() {
           <Link href="/play" className="transition-colors hover:text-kc-ink">
             Play
           </Link>
+          <Link href="/dashboard" className="transition-colors hover:text-kc-ink">
+            Dashboard
+          </Link>
           <Link href="/daily" className="transition-colors hover:text-kc-ink">
             Daily
           </Link>
