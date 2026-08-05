@@ -10,7 +10,7 @@ export type MatchMode = "ranked_1v1" | "practice_classic" | "practice_zen" | "da
 export type MatchStatus = "in_progress" | "completed" | "abandoned";
 export type FriendshipStatus = "pending" | "accepted";
 
-export interface Profile {
+export type Profile = {
   id: string;
   username: string;
   display_name: string | null;
@@ -26,9 +26,9 @@ export interface Profile {
   active_theme: string;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface PlayerRaceStats {
+export type PlayerRaceStats = {
   rawWpm: number;
   consistency: number;
   correctWords: number;
@@ -37,9 +37,9 @@ export interface PlayerRaceStats {
   correctKeystrokes: number;
   mistakes: number;
   completionPct: number;
-}
+};
 
-export interface Match {
+export type Match = {
   id: string;
   mode: MatchMode;
   status: MatchStatus;
@@ -60,9 +60,9 @@ export interface Match {
   player_two_rating_delta: number | null;
   created_at: string;
   completed_at: string | null;
-}
+};
 
-export interface MatchEvent {
+export type MatchEvent = {
   id: number;
   match_id: string;
   player_id: string;
@@ -70,16 +70,16 @@ export interface MatchEvent {
   total_chars: number;
   elapsed_ms: number;
   server_received_at: string;
-}
+};
 
-export interface DailyChallenge {
+export type DailyChallenge = {
   challenge_date: string;
   text_content: string;
   rule_description: string;
   created_at: string;
-}
+};
 
-export interface DailyChallengeAttempt {
+export type DailyChallengeAttempt = {
   id: string;
   challenge_date: string;
   player_id: string;
@@ -88,9 +88,9 @@ export interface DailyChallengeAttempt {
   xp_awarded: number;
   coins_awarded: number;
   created_at: string;
-}
+};
 
-export interface LeaderboardSnapshot {
+export type LeaderboardSnapshot = {
   id: string;
   period_start: string;
   period_end: string;
@@ -98,25 +98,25 @@ export interface LeaderboardSnapshot {
   rating_at_snapshot: number;
   rank_position: number;
   created_at: string;
-}
+};
 
-export interface Cosmetic {
+export type Cosmetic = {
   id: string;
   name: string;
   kind: "caret_color" | "theme";
   price_coins: number;
   preview_value: string;
-}
+};
 
-export interface UserCosmetic {
+export type UserCosmetic = {
   player_id: string;
   cosmetic_id: string;
   unlocked_at: string;
-}
+};
 
 export type RoomStatus = "waiting" | "in_progress" | "completed" | "cancelled";
 
-export interface Room {
+export type Room = {
   id: string;
   code: string;
   host_id: string;
@@ -126,28 +126,31 @@ export interface Room {
   status: RoomStatus;
   match_id: string | null;
   created_at: string;
-}
+};
 
-export interface RoomParticipant {
+export type RoomParticipant = {
   room_id: string;
   player_id: string;
   is_ready: boolean;
   joined_at: string;
-}
+};
 
-export interface Friendship {
+export type Friendship = {
   requester_id: string;
   addressee_id: string;
   status: FriendshipStatus;
   created_at: string;
-}
+};
 
 /**
  * Supabase's `createClient<Database>()` generic uses this shape to type
  * every `.from("table_name")` call. Row = what select returns, Insert = what
  * you must/can provide on insert, Update = what you can patch.
  */
-export interface Database {
+export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: string;
+  };
   public: {
     Tables: {
       profiles: {
@@ -222,4 +225,4 @@ export interface Database {
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
-}
+};
