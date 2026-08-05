@@ -116,7 +116,9 @@ export function TimedTypingRace({
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     const shortcutKey = settings.restartShortcut === "tab" ? "Tab" : "Escape";
-    if (e.key === shortcutKey && onRestartShortcut) {
+    const isConfiguredShortcut = e.key === shortcutKey;
+    const isCtrlEnterShortcut = e.ctrlKey && e.key === "Enter";
+    if ((isConfiguredShortcut || isCtrlEnterShortcut) && onRestartShortcut) {
       e.preventDefault();
       onRestartShortcut();
       return;
@@ -134,6 +136,11 @@ export function TimedTypingRace({
       const expectedChar = text[input.length];
       if (expectedChar !== undefined && e.key !== expectedChar) {
         mistakesRef.current += 1;
+        // Expert/Master difficulty: a single mistake ends the race
+        // immediately, same as Monkeytype's stop-on-error difficulties.
+        if (settings.difficulty !== "normal" && startedAt) {
+          setTimeout(finish, 0);
+        }
       }
     }
   }
@@ -153,7 +160,8 @@ export function TimedTypingRace({
       mode.kind === "words" ||
       mode.kind === "quote" ||
       mode.kind === "numbers" ||
-      mode.kind === "punctuation";
+      mode.kind === "punctuation" ||
+      mode.kind === "custom";
     if (finishesOnCompletion && value.length >= text.length) {
       setTimeout(finish, 0);
     }
@@ -251,6 +259,18 @@ export function TimedTypingRace({
   const activeRow = rowOfWord[activeWordIndex] ?? 0;
   const scrollOffsetPx = activeRow * lineHeight;
 
+  // Focus mode: fade page chrome (nav, etc.) while a race is actively in
+  // progress. Toggling a body class rather than threading a prop through
+  // every page that renders this component — the CSS lives in globals.css.
+  useEffect(() => {
+    if (!settings.focusMode) return;
+    const active = Boolean(startedAt) && !finished;
+    document.body.classList.toggle("kc-focus-mode", active);
+    return () => {
+      document.body.classList.remove("kc-focus-mode");
+    };
+  }, [settings.focusMode, startedAt, finished]);
+
   const progressPct = Math.min(100, Math.round((totalTyped / text.length) * 100));
 
   return (
@@ -313,7 +333,11 @@ export function TimedTypingRace({
                 const typedChar = input[idx];
                 let className = "text-kc-ink-muted";
                 if (typedChar !== undefined) {
-                  className = typedChar === char ? "text-kc-ink" : "text-kc-danger bg-kc-danger/10";
+                  className = settings.blindMode
+                    ? "text-kc-ink"
+                    : typedChar === char
+                      ? "text-kc-ink"
+                      : "text-kc-danger bg-kc-danger/10";
                 }
                 const isCaret = idx === input.length;
                 return (

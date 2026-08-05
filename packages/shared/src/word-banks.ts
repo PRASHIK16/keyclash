@@ -294,6 +294,11 @@ export function generateTextForMode(mode: GameModeConfig): string {
       return generateWordStream(mode.wordCount ?? 25);
     case "zen":
       return generateWordStream(200);
+    case "custom":
+      if (!mode.customText?.trim()) {
+        throw new Error("Custom mode requires non-empty customText on the GameModeConfig.");
+      }
+      return mode.customText.trim();
     case "quote":
       return generateQuoteText();
     case "numbers":

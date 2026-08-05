@@ -13,6 +13,7 @@ export function PracticeSession({ caretColor }: { caretColor: string }) {
   const [phase, setPhase] = useState<Phase>("select");
   const [mode, setMode] = useState<GameModeConfig>({ kind: "time", durationSeconds: 30 });
   const [text, setText] = useState("");
+  const [customInput, setCustomInput] = useState("");
   const [result, setResult] = useState<TimedRaceResult | null>(null);
   const [rewards, setRewards] = useState<{ xpAwarded: number; coinsAwarded: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,15 @@ export function PracticeSession({ caretColor }: { caretColor: string }) {
   function startRace(selectedMode: GameModeConfig) {
     setMode(selectedMode);
     setText(generateTextForMode(selectedMode));
+    setPhase("racing");
+  }
+
+  function startCustomRace() {
+    const trimmed = customInput.trim();
+    if (!trimmed) return;
+    const customMode: GameModeConfig = { kind: "custom", customText: trimmed };
+    setMode(customMode);
+    setText(generateTextForMode(customMode));
     setPhase("racing");
   }
 
@@ -139,6 +149,22 @@ export function PracticeSession({ caretColor }: { caretColor: string }) {
             <p className="mb-3 text-sm font-semibold text-kc-ink">Zen</p>
             <Button variant="secondary" onClick={() => startRace({ kind: "zen" })}>
               No timer — type until you&apos;re done
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            <p className="text-sm font-semibold text-kc-ink">Custom text</p>
+            <textarea
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              placeholder="Paste or type the text you want to race against…"
+              rows={4}
+              className="w-full rounded-lg border border-kc-border bg-kc-surface-2 p-3 text-sm text-kc-ink outline-none focus:border-kc-accent"
+            />
+            <Button onClick={startCustomRace} disabled={!customInput.trim()}>
+              Start custom race
             </Button>
           </CardContent>
         </Card>

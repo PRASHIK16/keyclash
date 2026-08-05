@@ -9,7 +9,7 @@
  *      not a rewrite of the race engine itself.
  */
 export type GameModeKind =
-  "time" | "words" | "zen" | "quote" | "numbers" | "punctuation" | "programming";
+  "time" | "words" | "zen" | "custom" | "quote" | "numbers" | "punctuation" | "programming";
 
 export interface GameModeConfig {
   kind: GameModeKind;
@@ -17,6 +17,8 @@ export interface GameModeConfig {
   durationSeconds?: number;
   /** Required for "words" mode. Number of words to type. */
   wordCount?: number;
+  /** Required for "custom" mode. User-supplied text to race against. */
+  customText?: string;
 }
 
 export const TIME_MODE_DURATIONS = [15, 30, 60, 120] as const;
