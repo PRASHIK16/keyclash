@@ -97,6 +97,25 @@ cuts to ship M2 in one focused batch):
   inflate one account's rating. Worth a design pass before this becomes a
   real product, not urgent for early testing
 
+## ✅ M2.3 — Dashboard, social leaderboards, custom modes, accessibility settings (this delivery)
+
+- [x] Dashboard: avg/highest WPM, total races, streak, WPM trend graph, 6 achievements (computed live, no separate achievements table needed yet)
+- [x] Daily streak tracking (`profiles.current_streak`/`longest_streak`)
+- [x] Weekly/Monthly leaderboards (rating-delta aggregation over the period)
+- [x] Friends system: send/accept requests, Friends leaderboard tab, username search across all leaderboard tabs
+- [x] Custom Text mode (paste your own text)
+- [x] Difficulty (Normal/Expert/Master — Expert+Master end the race on first mistake)
+- [x] Blind Mode, Focus Mode, Animation Speed settings
+- [x] Forgot Password (real Supabase reset-password-by-email flow) + Remember Me (approximated — see note below)
+- [x] Ctrl+Enter restart shortcut (alongside the existing Tab/Escape choice)
+
+**Honest simplifications, not oversights:**
+
+- **Language selector** shows Spanish/French as real options but they're disabled — no word-bank content exists for them yet, same pattern as Programming mode
+- **Weekly/Monthly leaderboards** aggregate in JS from the `matches` table rather than a SQL function or scheduled snapshot job — fine at current scale, worth revisiting if match volume grows large
+- **Remember Me** can't do a true persistent-vs-session storage swap (Supabase's client storage adapter is fixed at creation, not per sign-in) — unchecking it instead signs you out on tab/window close, a close approximation, not the exact same mechanism
+- **Achievements** are a small fixed set computed from existing profile stats, not a flexible/extensible achievement system with its own table
+
 ## 🔜 M3 — Social & competitive structure
 
 - Guilds/typing clubs
