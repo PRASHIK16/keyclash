@@ -24,6 +24,9 @@ export type Profile = {
   matches_won: number;
   caret_color: string;
   active_theme: string;
+  current_streak: number;
+  longest_streak: number;
+  last_active_date: string | null;
   created_at: string;
   updated_at: string;
 };
