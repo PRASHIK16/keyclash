@@ -13,6 +13,54 @@ export function SettingsPanel() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
+          <CardTitle>Race behavior</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <SettingRow label="Difficulty">
+            <SegmentedControl
+              value={settings.difficulty}
+              options={[
+                { value: "normal", label: "Normal" },
+                { value: "expert", label: "Expert" },
+                { value: "master", label: "Master" },
+              ]}
+              onChange={(v) => updateSetting("difficulty", v as UserSettings["difficulty"])}
+            />
+          </SettingRow>
+          <p className="text-xs text-kc-ink-muted">
+            Normal: no penalty for mistakes. Expert/Master: the race ends immediately on your first
+            mistake.
+          </p>
+
+          <ToggleRow
+            label="Blind mode"
+            description="Hide correct/incorrect coloring while typing — type by feel"
+            checked={settings.blindMode}
+            onChange={(v) => updateSetting("blindMode", v)}
+          />
+          <ToggleRow
+            label="Focus mode"
+            description="Fade everything except the typing area once a race starts"
+            checked={settings.focusMode}
+            onChange={(v) => updateSetting("focusMode", v)}
+          />
+
+          <SettingRow label="Animation speed">
+            <SegmentedControl
+              value={settings.animationSpeed}
+              options={[
+                { value: "slow", label: "Slow" },
+                { value: "normal", label: "Normal" },
+                { value: "fast", label: "Fast" },
+              ]}
+              onChange={(v) => updateSetting("animationSpeed", v as UserSettings["animationSpeed"])}
+            />
+          </SettingRow>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Appearance</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -97,12 +145,21 @@ export function SettingsPanel() {
           <SettingRow label="Language">
             <SegmentedControl
               value={settings.language}
-              options={[{ value: "en", label: "English" }]}
-              onChange={() => {}}
+              options={[
+                { value: "en", label: "English" },
+                { value: "es", label: "Español (soon)" },
+                { value: "fr", label: "Français (soon)" },
+              ]}
+              onChange={(v) => {
+                if (v !== "en") return; // no word-bank content for these yet — see comment on UserSettings.language
+                updateSetting("language", v as UserSettings["language"]);
+              }}
             />
           </SettingRow>
           <p className="text-xs text-kc-ink-muted">
-            More languages are planned — English is the only option for now.
+            Spanish and French are on the roadmap — the selector shows them so you know they&apos;re
+            coming, but there&apos;s no word content for them yet, so selecting them is disabled for
+            now.
           </p>
         </CardContent>
       </Card>
