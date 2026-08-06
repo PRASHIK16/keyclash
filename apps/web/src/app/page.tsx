@@ -1,17 +1,6 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 
-export default async function HomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    redirect("/play");
-  }
-
+export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-kc-bg">
       <div className="kc-grid-bg pointer-events-none absolute inset-0" />
