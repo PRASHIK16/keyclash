@@ -26,10 +26,30 @@
   --kc-danger: #f43f5e;
 }
 
+/*
+  Light theme. Same brand colors (accent lime, violet, danger) — those work
+  fine on a light background since accent-colored elements pair with black
+  text already, not white. Only the neutral scale (bg/surface/border/ink)
+  actually needs to flip.
+*/
+.light {
+  --kc-bg: #f7f7fb;
+  --kc-surface: #ffffff;
+  --kc-surface-2: #eef0f6;
+  --kc-surface-3: #e2e4ee;
+  --kc-border: #dcdfe8;
+  --kc-ink: #14141c;
+  --kc-ink-muted: #6b6f80;
+  --kc-accent: #7fae00;
+  --kc-violet: #7c3aed;
+  --kc-danger: #dc2626;
+}
+
 html,
 body {
   background-color: var(--kc-bg);
   color: var(--kc-ink);
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 * {

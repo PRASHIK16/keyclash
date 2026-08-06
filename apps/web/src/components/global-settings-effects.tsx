@@ -22,5 +22,11 @@ export function GlobalSettingsEffects() {
     );
   }, [loaded, settings.animationSpeed]);
 
+  useEffect(() => {
+    if (!loaded) return;
+    document.documentElement.classList.remove("dark", "light");
+    document.documentElement.classList.add(settings.theme);
+  }, [loaded, settings.theme]);
+
   return null;
 }

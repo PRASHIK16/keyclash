@@ -23,7 +23,30 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+      <head>
+        {/*
+          Blocking inline script, runs before first paint. Without this,
+          the page would render with no theme class for a frame (or the
+          previous default) and then visibly flash to the correct theme
+          once React hydrates and GlobalSettingsEffects runs — the classic
+          "flash of wrong theme" problem. Reading localStorage synchronously
+          here and setting the class immediately avoids that entirely.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var raw = localStorage.getItem("keyclash:settings");
+                var theme = raw ? (JSON.parse(raw).theme || "dark") : "dark";
+                document.documentElement.classList.add(theme);
+              } catch (e) {
+                document.documentElement.classList.add("dark");
+              }
+            `,
+          }}
+        />
+      </head>
       <body className="font-body antialiased">
         <GlobalSettingsEffects />
         {children}

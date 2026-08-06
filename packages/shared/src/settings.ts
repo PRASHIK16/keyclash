@@ -5,6 +5,7 @@
  * changes later, this is the one interface to extend.
  */
 export type UserSettings = {
+  theme: "dark" | "light";
   fontSize: "sm" | "md" | "lg";
   caretStyle: "line" | "block" | "underline";
   soundEffects: boolean;
@@ -26,6 +27,7 @@ export type UserSettings = {
 };
 
 export const DEFAULT_SETTINGS: UserSettings = {
+  theme: "dark",
   fontSize: "md",
   caretStyle: "line",
   soundEffects: false,
