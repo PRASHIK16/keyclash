@@ -34,6 +34,7 @@ export function RoomLobby({
   const router = useRouter();
   const [participants, setParticipants] = useState<ParticipantRow[]>([]);
   const [starting, setStarting] = useState(false);
+  const [togglingReady, setTogglingReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -85,11 +86,39 @@ export function RoomLobby({
   }, [roomId, router]);
 
   async function toggleReady() {
-    await fetch("/api/rooms/ready", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomId, ready: !isReady }),
-    });
+    setTogglingReady(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/rooms/ready", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId, ready: !isReady }),
+      });
+
+      if (res.status === 401) {
+        // This is the specific failure mode worth naming explicitly rather
+        // than a generic error: the session expired or was cleared (e.g.
+        // by another tab), and no amount of retrying this same request
+        // will fix it — the person needs to actually sign back in.
+        setError("Your session has expired. Please refresh the page and sign in again.");
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to update ready status" }));
+        setError(data.error ?? "Failed to update ready status. Please try again.");
+        return;
+      }
+
+      // The realtime postgres_changes subscription above will pick up the
+      // actual state change and re-render participants — this just clears
+      // any stale error now that the request succeeded.
+      setError(null);
+    } catch {
+      setError("Couldn't reach the server. Check your connection and try again.");
+    } finally {
+      setTogglingReady(false);
+    }
   }
 
   async function handleStart() {
@@ -101,6 +130,13 @@ export function RoomLobby({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomId }),
       });
+
+      if (res.status === 401) {
+        setError("Your session has expired. Please refresh the page and sign in again.");
+        setStarting(false);
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to start");
       // Navigate directly rather than waiting on the postgres_changes event
@@ -148,13 +184,20 @@ export function RoomLobby({
       <Card>
         <CardContent className="divide-y divide-kc-border p-0">
           {participants.map((p) => (
-            <div key={p.player_id} className="flex items-center justify-between px-5 py-4">
+            <div
+              key={p.player_id}
+              className={`kc-float-up flex items-center justify-between px-5 py-4 transition-colors duration-300 ${
+                p.is_ready ? "bg-kc-accent/5" : ""
+              }`}
+            >
               <div className="flex items-center gap-3">
-                <Avatar
-                  name={p.profiles?.username ?? "?"}
-                  imageUrl={p.profiles?.avatar_url}
-                  size={32}
-                />
+                <div className={p.is_ready ? "rounded-full ring-2 ring-kc-accent/50" : ""}>
+                  <Avatar
+                    name={p.profiles?.username ?? "?"}
+                    imageUrl={p.profiles?.avatar_url}
+                    size={32}
+                  />
+                </div>
                 <span className="text-sm font-medium text-kc-ink">
                   {p.profiles?.username ?? "Unknown"}
                   {p.player_id === hostId && (
@@ -181,9 +224,10 @@ export function RoomLobby({
         <Button
           variant={isReady ? "secondary" : "primary"}
           onClick={toggleReady}
+          disabled={togglingReady}
           className="flex-1"
         >
-          {isReady ? "Not ready" : "Ready up"}
+          {togglingReady ? "Updating…" : isReady ? "Not ready" : "Ready up"}
         </Button>
         {isHost && (
           <Button onClick={handleStart} disabled={!allReady || starting} className="flex-1">

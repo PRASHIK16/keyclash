@@ -249,7 +249,12 @@ export function RaceRoom({
             Waiting for opponent to connect…
           </p>
         ) : (
-          <p className="font-display text-7xl font-extrabold text-kc-accent">
+          <p
+            key={countdownRemaining}
+            className={`kc-float-up font-display text-7xl font-extrabold ${
+              countdownRemaining === 0 ? "kc-pulse-glow text-kc-accent" : "text-kc-accent"
+            }`}
+          >
             {countdownRemaining || "Go"}
           </p>
         )}
@@ -269,7 +274,7 @@ export function RaceRoom({
           style={{ width: `${opponentProgress}%` }}
         />
       </div>
-      <div className="flex justify-center">
+      <div className="w-full">
         <TimedTypingRace
           mode={mode}
           text={textContent}
