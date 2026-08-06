@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, Avatar, Badge } from "@keyclash/ui";
 import { getRankTier } from "@keyclash/game-engine";
+import { SkeletonList } from "@/components/skeleton";
 
 interface Entry {
   id?: string;
@@ -67,9 +68,7 @@ export function LeaderboardTabs({ global, friends }: { global: Entry[]; friends:
 
       <Card className="mt-4">
         <CardContent className="divide-y divide-kc-border p-0">
-          {loadingPeriod && (
-            <p className="px-5 py-8 text-center text-sm text-kc-ink-muted">Loading…</p>
-          )}
+          {loadingPeriod && <SkeletonList rows={5} />}
           {!loadingPeriod &&
             filtered.map((player, i) => {
               const tier = getRankTier(player.rating);
