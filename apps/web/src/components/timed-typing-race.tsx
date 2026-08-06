@@ -27,21 +27,7 @@ interface TimedTypingRaceProps {
   onComplete: (result: TimedRaceResult) => void;
   onProgress?: (correctChars: number, totalChars: number) => void;
   disabled?: boolean;
-  /**
-   * When true, the race clock starts the instant this component mounts
-   * rather than waiting for the first keystroke. Used by ranked mode: both
-   * players' components mount at the same synced "Go" moment (driven by the
-   * shared countdown in race-room.tsx), so starting on mount keeps both
-   * timers aligned. Solo practice omits this — Monkeytype-style, the clock
-   * starts on your first keystroke so idling beforehand doesn't cost you time.
-   */
   syncStartImmediately?: boolean;
-  /**
-   * Fires when the user presses their configured restart shortcut
-   * (Settings → Controls). Only wire this up for solo/practice contexts —
-   * never pass it in ranked mode, where restarting mid-race would let a
-   * player bail out of a losing position without consequence.
-   */
   onRestartShortcut?: () => void;
 }
 
@@ -136,8 +122,6 @@ export function TimedTypingRace({
       const expectedChar = text[input.length];
       if (expectedChar !== undefined && e.key !== expectedChar) {
         mistakesRef.current += 1;
-        // Expert/Master difficulty: a single mistake ends the race
-        // immediately, same as Monkeytype's stop-on-error difficulties.
         if (settings.difficulty !== "normal" && startedAt) {
           setTimeout(finish, 0);
         }
@@ -171,9 +155,6 @@ export function TimedTypingRace({
     if (mode.kind === "zen" && startedAt) finish();
   }
 
-  // Time mode: hard countdown. Race ends the instant it hits zero,
-  // regardless of what either player has typed — this is the fix for
-  // "whoever finishes first ends the match for everyone."
   useEffect(() => {
     if (mode.kind !== "time" || finished || !startedAt) return;
     const durationMs = (mode.durationSeconds ?? 0) * 1000;
@@ -192,7 +173,6 @@ export function TimedTypingRace({
     return () => cancelAnimationFrame(frame);
   }, [mode.kind, mode.durationSeconds, startedAt, finished, finish]);
 
-  // Periodic checkpoint reporting (anti-cheat, ranked mode).
   useEffect(() => {
     if (!startedAt || finished) return;
     const now = Date.now();
@@ -207,7 +187,6 @@ export function TimedTypingRace({
     onCheckpoint?.(checkpoint);
   }, [input, startedAt, finished, correctChars, totalTyped, onCheckpoint]);
 
-  // Live WPM ticker + periodic sampling for the consistency score.
   useEffect(() => {
     if (!startedAt || finished) return;
     const interval = setInterval(() => {
@@ -221,9 +200,6 @@ export function TimedTypingRace({
   const words = text.split(" ");
   const activeWordIndex = Math.max(0, input.split(" ").length - 1);
 
-  // Word wrapping into rows depends only on container width and the word
-  // list itself — not on typing progress — so this only needs to run once
-  // per race (and on resize), not on every keystroke.
   useEffect(() => {
     function computeRows() {
       const rowTops: number[] = [];
@@ -248,8 +224,6 @@ export function TimedTypingRace({
         if (first !== undefined && second !== undefined) setLineHeight(second - first);
       }
     }
-    // Two rAF ticks: one for layout to settle after the words render, one
-    // safety pass in case fonts finished loading a frame late.
     requestAnimationFrame(() => requestAnimationFrame(computeRows));
     window.addEventListener("resize", computeRows);
     return () => window.removeEventListener("resize", computeRows);
@@ -259,9 +233,6 @@ export function TimedTypingRace({
   const activeRow = rowOfWord[activeWordIndex] ?? 0;
   const scrollOffsetPx = activeRow * lineHeight;
 
-  // Focus mode: fade page chrome (nav, etc.) while a race is actively in
-  // progress. Toggling a body class rather than threading a prop through
-  // every page that renders this component — the CSS lives in globals.css.
   useEffect(() => {
     if (!settings.focusMode) return;
     const active = Boolean(startedAt) && !finished;
@@ -274,7 +245,7 @@ export function TimedTypingRace({
   const progressPct = Math.min(100, Math.round((totalTyped / text.length) * 100));
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="w-full">
       <div className="mb-3 flex items-center justify-between font-mono text-sm text-kc-ink-muted">
         <div className="flex items-center gap-4">
           {settings.liveWpm && (
@@ -298,7 +269,7 @@ export function TimedTypingRace({
         )}
       </div>
 
-      <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-kc-surface-3">
+      <div className="mb-6 h-1 w-full overflow-hidden rounded-full bg-kc-surface-3">
         <div
           className="h-full rounded-full bg-kc-accent transition-all duration-150"
           style={{
@@ -311,11 +282,7 @@ export function TimedTypingRace({
       </div>
 
       <div
-        className={`relative cursor-text overflow-hidden rounded-xl border p-7 font-mono ${FONT_SIZE_CLASSES[settings.fontSize]} leading-relaxed tracking-wide transition-shadow duration-300 ${
-          startedAt && !finished
-            ? "border-kc-accent shadow-[0_0_0_1px_var(--kc-accent),0_0_32px_-8px_var(--kc-accent)]"
-            : "border-kc-border"
-        } bg-kc-surface`}
+        className={`relative cursor-text overflow-hidden py-6 font-mono ${FONT_SIZE_CLASSES[settings.fontSize]} leading-relaxed tracking-wide`}
         style={{ height: lineHeight * 3 }}
         onClick={() => inputRef.current?.focus()}
       >
