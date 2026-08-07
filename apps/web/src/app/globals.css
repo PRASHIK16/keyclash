@@ -121,8 +121,65 @@ body.kc-focus-mode header {
   pointer-events: none;
 }
 
+/*
+  Global smooth-theme-transition fallback. Universal selectors have zero
+  CSS specificity, so any element with a more specific transition utility
+  (e.g. Tailwind's `transition-colors duration-150`) simply overrides this —
+  this only fills in the gap for elements that don't already animate their
+  own color changes, which is most of the app's surfaces/borders/text when
+  the theme toggle flips .dark/.light on <html>.
+*/
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
+}
+
+/* ==============================================================================
+   PREMIUM TYPING FEEDBACK
+   ============================================================================== */
+
+@keyframes kc-char-pop {
+  0% { transform: scale(0.85); opacity: 0.5; }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes kc-char-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+.kc-char-pop {
+  display: inline-block;
+  animation: kc-char-pop calc(180ms * var(--kc-anim-speed, 1)) ease-out;
+}
+
+.kc-char-shake {
+  display: inline-block;
+  animation: kc-char-shake calc(220ms * var(--kc-anim-speed, 1)) ease-in-out;
+}
+
+/* Active word: dark mode gets a soft neon glow, light mode gets a subtle
+   elevation shadow instead — a glow reads as "premium" on dark surfaces but
+   just looks like a smudge on light ones, so the two themes get genuinely
+   different (not just re-colored) treatments here. */
+.dark .kc-active-word {
+  box-shadow: 0 0 14px -2px var(--kc-accent);
+}
+.light .kc-active-word {
+  box-shadow: 0 2px 10px -3px rgba(20, 20, 28, 0.18);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .kc-clash-left, .kc-clash-right, .kc-clash-flash, .kc-caret, .kc-float-up, .kc-pulse-glow {
+  .kc-clash-left, .kc-clash-right, .kc-clash-flash, .kc-caret, .kc-float-up, .kc-pulse-glow,
+  .kc-char-pop, .kc-char-shake {
     animation: none !important;
+  }
+  * {
+    transition: none !important;
   }
 }
