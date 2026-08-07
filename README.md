@@ -152,18 +152,6 @@ Currently run locally (`pnpm dev`). To deploy to Vercel:
 5. Deploy
 6. In Supabase → **Authentication → URL Configuration**, add your Vercel URL to the allowed redirect URLs (needed for email confirmation and password reset links)
 
-## Screenshots
-
-_Add screenshots here:_
-
-| Landing      | Practice     | Ranked       |
-| ------------ | ------------ | ------------ |
-| _screenshot_ | _screenshot_ | _screenshot_ |
-
-| Dashboard    | Leaderboard  | Settings     |
-| ------------ | ------------ | ------------ |
-| _screenshot_ | _screenshot_ | _screenshot_ |
-
 ## Future Improvements
 
 - Programming mode (real code snippets, syntax-aware content)
