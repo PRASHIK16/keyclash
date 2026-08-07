@@ -64,17 +64,6 @@ export function SettingsPanel() {
           <CardTitle>Appearance</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          <SettingRow label="Theme">
-            <SegmentedControl
-              value={settings.theme}
-              options={[
-                { value: "dark", label: "Dark" },
-                { value: "light", label: "Light" },
-              ]}
-              onChange={(v) => updateSetting("theme", v as UserSettings["theme"])}
-            />
-          </SettingRow>
-
           <SettingRow label="Font size">
             <SegmentedControl
               value={settings.fontSize}
