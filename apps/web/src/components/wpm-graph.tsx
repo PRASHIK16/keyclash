@@ -22,10 +22,15 @@ export function WpmGraph({ values }: { values: number[] }) {
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="none">
-      <polyline points={points.join(" ")} fill="none" stroke="#C6FF3D" strokeWidth="2" />
+      <polyline
+        points={points.join(" ")}
+        fill="none"
+        style={{ stroke: "var(--kc-accent)" }}
+        strokeWidth="2"
+      />
       {values.map((v, i) => {
         const [x, y] = points[i]!.split(",");
-        return <circle key={i} cx={x} cy={y} r="2.5" fill="#C6FF3D" />;
+        return <circle key={i} cx={x} cy={y} r="2.5" style={{ fill: "var(--kc-accent)" }} />;
       })}
     </svg>
   );
