@@ -54,6 +54,17 @@ export function RoomLobby({
       if (data) setParticipants(data as unknown as ParticipantRow[]);
     }
 
+    async function checkRoomStatus() {
+      const { data } = await supabase
+        .from("rooms")
+        .select("status, match_id")
+        .eq("id", roomId)
+        .single();
+      if (data?.status === "in_progress" && data.match_id) {
+        router.push(`/play/ranked/${data.match_id}`);
+      }
+    }
+
     refetchParticipants();
 
     const channel = supabase
@@ -80,8 +91,20 @@ export function RoomLobby({
       )
       .subscribe();
 
+    // Defensive fallback, not the primary mechanism: on a flaky mobile
+    // connection a WebSocket can silently drop without the client noticing
+    // for a while. This polls every 4s so the lobby can't get permanently
+    // stuck even if a realtime event is missed for any reason — the
+    // subscription above is still what makes updates feel instant; this is
+    // just a safety net under it.
+    const pollInterval = setInterval(() => {
+      refetchParticipants();
+      checkRoomStatus();
+    }, 4000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, [roomId, router]);
 
