@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Sora, Inter, JetBrains_Mono } from "next/font/google";
+import { SettingsProvider } from "@/lib/use-settings";
 import { GlobalSettingsEffects } from "@/components/global-settings-effects";
 import { Footer } from "@/components/footer";
 import "./globals.css";
@@ -49,9 +50,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-body antialiased">
-        <GlobalSettingsEffects />
-        {children}
-        <Footer />
+        <SettingsProvider>
+          <GlobalSettingsEffects />
+          {children}
+          <Footer />
+        </SettingsProvider>
       </body>
     </html>
   );
