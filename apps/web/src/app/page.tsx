@@ -1,13 +1,9 @@
 import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-kc-bg">
       <div className="kc-grid-bg pointer-events-none absolute inset-0" />
-      <div className="absolute right-4 top-4 z-10">
-        <ThemeToggle />
-      </div>
 
       <div className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <div className="kc-float-up">
