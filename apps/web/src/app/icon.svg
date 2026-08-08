@@ -1,0 +1,11 @@
+<svg width="88" height="88" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <circle cx="44" cy="44" r="40" fill="url(#kc-glow)" opacity="0.5" />
+  <rect x="10" y="34" width="40" height="28" rx="6" fill="#7C3AED" transform="rotate(-16 30 48)" />
+  <rect x="38" y="34" width="40" height="28" rx="6" fill="#C6FF3D" transform="rotate(16 58 48)" />
+  <defs>
+    <radialGradient id="kc-glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#7C3AED" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+</svg>
